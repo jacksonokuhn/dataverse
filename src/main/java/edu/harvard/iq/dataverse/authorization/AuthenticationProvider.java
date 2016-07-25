@@ -15,7 +15,7 @@ public interface AuthenticationProvider {
     public String getId();
     
     public AuthenticationProviderDisplayInfo getInfo();
-    
+        
     /**
      * The main method of this interface - provide a consistent user id, within
      * the scope of this provider, for a user based on the request content.

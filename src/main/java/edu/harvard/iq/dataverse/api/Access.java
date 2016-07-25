@@ -946,7 +946,7 @@ public class Access extends AbstractApiBean {
             }
         }
         
-        AuthenticatedUser user = null;
+            AuthenticatedUser user = null;
        
         /** 
          * Authentication/authorization:

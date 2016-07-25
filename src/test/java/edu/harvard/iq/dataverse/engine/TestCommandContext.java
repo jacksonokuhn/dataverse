@@ -10,6 +10,7 @@ import edu.harvard.iq.dataverse.search.SearchServiceBean;
 import edu.harvard.iq.dataverse.search.SolrIndexServiceBean;
 import edu.harvard.iq.dataverse.search.savedsearch.SavedSearchServiceBean;
 import edu.harvard.iq.dataverse.settings.SettingsServiceBean;
+import edu.harvard.iq.dataverse.util.SystemConfig;
 import javax.persistence.EntityManager;
 
 /**
@@ -162,6 +163,12 @@ public class TestCommandContext implements CommandContext {
     @Override
     public UserNotificationServiceBean notifications() {
         return null;
-    }     
+    }   
+    
+    @Override
+    public SystemConfig systemConfig() {
+        return null;
+    }
 	
 }
+    

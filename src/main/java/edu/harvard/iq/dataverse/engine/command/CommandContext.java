@@ -28,6 +28,7 @@ import edu.harvard.iq.dataverse.engine.DataverseEngine;
 import edu.harvard.iq.dataverse.search.SolrIndexServiceBean;
 import edu.harvard.iq.dataverse.search.savedsearch.SavedSearchServiceBean;
 import edu.harvard.iq.dataverse.settings.SettingsServiceBean;
+import edu.harvard.iq.dataverse.util.SystemConfig;
 import javax.persistence.EntityManager;
 
 /**
@@ -38,31 +39,31 @@ import javax.persistence.EntityManager;
  */
 public interface CommandContext {
     
-	public EntityManager em();
+    public EntityManager em();
+
+    public DataverseEngine engine();
+
+    public DvObjectServiceBean dvObjects();
+
+    public DatasetServiceBean datasets();
+
+    public DataverseServiceBean dataverses();
+
+    public DataverseRoleServiceBean roles();
+
+    public BuiltinUserServiceBean builtinUsers();
 	
-	public DataverseEngine engine();
-	
-	public DvObjectServiceBean dvObjects();
-	
-	public DatasetServiceBean datasets();
-	
-	public DataverseServiceBean dataverses();
-	
-	public DataverseRoleServiceBean roles();
-	
-	public BuiltinUserServiceBean builtinUsers();
-	
-	public IndexServiceBean index();
+    public IndexServiceBean index();
 
     public SolrIndexServiceBean solrIndex();
 	
-	public SearchServiceBean search();
+    public SearchServiceBean search();
 	
-	public PermissionServiceBean permissions();
+    public PermissionServiceBean permissions();
     
     public RoleAssigneeServiceBean roleAssignees();
 	
-	public DataverseFacetServiceBean facets(); 
+    public DataverseFacetServiceBean facets(); 
         
     public FeaturedDataverseServiceBean featuredDataverses();       
     
@@ -95,4 +96,6 @@ public interface CommandContext {
     public UserNotificationServiceBean notifications();
     
     public AuthenticationServiceBean authentication();
+    
+    public SystemConfig systemConfig();
 }

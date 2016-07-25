@@ -652,7 +652,7 @@ if ( $psql_exec eq "" )
 
 # 4a. BUT FIRST, CHECK IF WE CAN TALK TO POSTGRES AS THE ADMIN:
 
-if ( $psql_admin_exec eq "" || system( $psql_admin_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U postgres -d postgres -c 'SELECT * FROM pg_roles' > /dev/null 2>&1" ) ) 
+if ( $psql_admin_exec eq "" || system( $psql_admin_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U eli -d postgres -c 'SELECT * FROM pg_roles' > /dev/null 2>&1" ) ) 
 {
     # No, we can't. :(
     if ($pg_local_connection) 
@@ -750,7 +750,7 @@ else
     # 4c. CHECK IF THIS DB ALREADY EXISTS:
     
     my $psql_command_dbcheck =
-	$psql_admin_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U postgres -c \"\" -d " . $CONFIG_DEFAULTS{'POSTGRES_DATABASE'} . ">/dev/null 2>&1";
+	$psql_admin_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U eli -c \"\" -d " . $CONFIG_DEFAULTS{'POSTGRES_DATABASE'} . ">/dev/null 2>&1";
 
     if ( ( my $exitcode = system($psql_command_dbcheck) ) == 0 ) 
     {    
@@ -807,7 +807,7 @@ else
 	print TMPCMD $sql_command;
 	close TMPCMD;
 	    
-	my $psql_commandline = $psql_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U postgres -d postgres -f /tmp/pgcmd.$$.tmp >/dev/null 2>&1";
+	my $psql_commandline = $psql_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U eli -d postgres -f /tmp/pgcmd.$$.tmp >/dev/null 2>&1";
 
 	my $out      = qx($psql_commandline 2>&1);
 	my $exitcode = $?;
@@ -830,7 +830,7 @@ else
     
     my $psql_command =
 	$psql_admin_exec
-	. "/createdb -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U postgres "
+	. "/createdb -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U eli "
 	. $CONFIG_DEFAULTS{'POSTGRES_DATABASE'}
         . " --owner="
 	. $CONFIG_DEFAULTS{'POSTGRES_USER'};

@@ -23,6 +23,7 @@ import javax.inject.Named;
 import edu.harvard.iq.dataverse.search.SolrIndexServiceBean;
 import edu.harvard.iq.dataverse.search.savedsearch.SavedSearchServiceBean;
 import edu.harvard.iq.dataverse.settings.SettingsServiceBean;
+import edu.harvard.iq.dataverse.util.SystemConfig;
 import java.util.EnumSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -127,6 +128,9 @@ public class EjbDataverseEngine {
     
     @EJB
     AuthenticationServiceBean authentication; 
+    
+    @EJB
+    SystemConfig systemConfig;
     
     @PersistenceContext(unitName = "VDCNet-ejbPU")
     private EntityManager em;
@@ -371,6 +375,11 @@ public class EjbDataverseEngine {
                 public AuthenticationServiceBean authentication() {
                     return authentication;
                 } 
+                
+                @Override
+                public SystemConfig systemConfig() {
+                    return systemConfig;
+                }
                 
             };
         }
