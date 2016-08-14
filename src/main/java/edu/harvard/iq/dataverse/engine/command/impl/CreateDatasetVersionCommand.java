@@ -1,5 +1,6 @@
 package edu.harvard.iq.dataverse.engine.command.impl;
 
+import edu.harvard.iq.dataverse.DataFile;
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetField;
 import edu.harvard.iq.dataverse.DatasetVersion;
@@ -21,6 +22,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 import javax.validation.ConstraintViolation;
 
+
+
 /**
  *
  * @author michael
@@ -32,6 +35,12 @@ public class CreateDatasetVersionCommand extends AbstractCommand<DatasetVersion>
     
     final DatasetVersion newVersion;
     final Dataset dataset;
+    
+    private void msg(String str) {
+        System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+        System.out.println(str);
+        System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    }
     
     public CreateDatasetVersionCommand(DataverseRequest aRequest, Dataset theDataset, DatasetVersion aVersion) {
         super(aRequest, theDataset);
@@ -51,6 +60,15 @@ public class CreateDatasetVersionCommand extends AbstractCommand<DatasetVersion>
                 throw new IllegalCommandException("Latest version is already a draft. Cannot add another draft", this);
             }
         }
+        msg("TESTSETRESTESTS");
+        
+       msg("CDVCversion: "+dataset.getLatestVersion()); 
+       int dFnum = 1;
+       for (DataFile dataFile: dataset.getFiles() ){
+            msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
+            dFnum++;
+        } 
+       
         newVersion.setDatasetFields(newVersion.initDatasetFields());
      
         Set<ConstraintViolation> constraintViolations = newVersion.validate();

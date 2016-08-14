@@ -12,6 +12,9 @@ import edu.harvard.iq.dataverse.DatasetFieldConstant;
 import edu.harvard.iq.dataverse.DatasetVersionUser;
 import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.Dataverse;
+import edu.harvard.iq.dataverse.FileMetadata;
+import edu.harvard.iq.dataverse.PublishDatasetProv;
+import static edu.harvard.iq.dataverse.PublishDatasetProv.msg;
 import edu.harvard.iq.dataverse.RoleAssignment;
 import edu.harvard.iq.dataverse.UserNotification;
 import edu.harvard.iq.dataverse.authorization.Permission;
@@ -29,6 +32,11 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 import java.util.ResourceBundle;
+
+/*** creation of a dataset ***/
+
+
+
 
 /**
  *
@@ -53,6 +61,8 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         theDataset = datasetIn;
     }
 
+    
+    
     @Override
     public Dataset execute(CommandContext ctxt) throws CommandException {
 
@@ -175,7 +185,8 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
 
         theDataset.setFileAccessRequest(theDataset.getLatestVersion().getTermsOfUseAndAccess().isFileAccessRequest());
         Dataset savedDataset = ctxt.em().merge(theDataset);
-
+     
+                
         // set the subject of the parent (all the way up) Dataverses
         DatasetField subject = null;
         for (DatasetField dsf : savedDataset.getLatestVersion().getDatasetFields()) {
@@ -227,7 +238,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
                 throw new CommandException(ResourceBundle.getBundle("Bundle").getString("dataset.publish.error.datacite"), this);
             }
         }
-
+        
         /*
         MoveIndexing to after DOI update so that if command exception is thrown the re-index will not
         
@@ -242,7 +253,57 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
          * @todo what should we do with the indexRespose?
          */
         IndexResponse indexResponse = ctxt.solrIndex().indexPermissionsForOneDvObject(savedDataset);
-
+        
+        
+        
+        /******
+        ******/
+        
+        String originator = ctxt.systemConfig().getDataverseSiteUrl();
+        
+        String versionNumber = theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber();
+        String versionTransformation = "fromUI / tracked change";
+        String datasetTransformation = "fromUI";
+        String name = theDataset.getIdentifier() + versionNumber;
+        String agent = getUser().getIdentifier();
+        String parentName = "fromUI";
+        
+        PublishDatasetProv.msg("CPLObject.lookup("+"originator: "+ originator+", name: "+name+", type: entity");
+        PublishDatasetProv.msg("agent: "+agent);
+        
+        // if no datasetTransformation or parentDatset is given by the user then it is a new dataset or a new version of a dataset
+        
+        if (versionTransformation != null && datasetTransformation == null && parentName == null) {
+            PublishDatasetProv.createProv(originator, name, agent, versionTransformation, versionNumber, theDataset);
+            
+        }
+        else {
+            PublishDatasetProv.createProv(originator, name, agent, parentName, datasetTransformation, versionNumber, theDataset);
+        }
+        
+        PublishDatasetProv.msg("version: "+theDataset.getLatestVersion()); 
+        PublishDatasetProv.msg("versionMajor: "+theDataset.getVersionNumber());
+        PublishDatasetProv.msg("versionMinor: "+theDataset.getMinorVersionNumber());
+        
+        
+        int dFnum = 1;
+        for (DataFile dataFile: theDataset.getFiles() ){
+            
+            for (FileMetadata datafile: dataFile.getFileMetadatas()){
+                msg("test");
+            }
+            
+            PublishDatasetProv.msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
+            
+            
+            dFnum++;
+        } 
+        
+        /******
+        ******/
+        
+        
+        
         return savedDataset;
     }
 
