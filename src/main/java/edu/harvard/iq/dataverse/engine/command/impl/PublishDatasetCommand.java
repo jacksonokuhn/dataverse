@@ -44,7 +44,7 @@ import java.util.ResourceBundle;
  */
 @RequiredPermissions(Permission.PublishDataset)
 public class PublishDatasetCommand extends AbstractCommand<Dataset> {
-
+    
     boolean minorRelease = false;
     Dataset theDataset;
 
@@ -273,7 +273,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         
         // if no datasetTransformation or parentDatset is given by the user then it is a new dataset or a new version of a dataset
         
-        if (versionTransformation != null && datasetTransformation == null && parentName == null) {
+        if (theDataset.getPublicationDate() == null) {
             PublishDatasetProv.createProv(originator, name, agent, versionTransformation, versionNumber, theDataset);
             
         }
@@ -291,6 +291,8 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
             
             for (FileMetadata datafile: dataFile.getFileMetadatas()){
                 msg("test");
+                msg(dataFile.getFileMetadatas().get(dFnum).getLabel());
+
             }
             
             PublishDatasetProv.msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
