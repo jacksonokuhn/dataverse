@@ -13,8 +13,9 @@ import edu.harvard.iq.dataverse.DatasetVersionUser;
 import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.Dataverse;
 import edu.harvard.iq.dataverse.FileMetadata;
-import edu.harvard.iq.dataverse.PublishDatasetProv;
-import static edu.harvard.iq.dataverse.PublishDatasetProv.msg;
+import edu.harvard.iq.dataverse.Prov;
+import edu.harvard.iq.dataverse.PublishDatasetProvCommand;
+import static edu.harvard.iq.dataverse.PublishDatasetProvCommand.msg;
 import edu.harvard.iq.dataverse.RoleAssignment;
 import edu.harvard.iq.dataverse.UserNotification;
 import edu.harvard.iq.dataverse.authorization.Permission;
@@ -33,17 +34,19 @@ import java.util.Date;
 import java.util.List;
 import java.util.ResourceBundle;
 
-/*** creation of a dataset ***/
-
-
-
-
+/**
+ * * creation of a dataset **
+ */
 /**
  *
  * @author skraffmiller
  */
 @RequiredPermissions(Permission.PublishDataset)
 public class PublishDatasetCommand extends AbstractCommand<Dataset> {
+
+    //////        
+    Prov publishProv = new Prov();
+    //////
     
     boolean minorRelease = false;
     Dataset theDataset;
@@ -61,15 +64,14 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         theDataset = datasetIn;
     }
 
-    
-    
+
     @Override
     public Dataset execute(CommandContext ctxt) throws CommandException {
 
         if (!theDataset.getOwner().isReleased()) {
             throw new IllegalCommandException("This dataset may not be published because its host dataverse (" + theDataset.getOwner().getAlias() + ") has not been published.", this);
         }
-        
+
         if (theDataset.getLatestVersion().isReleased()) {
             throw new IllegalCommandException("Latest version of dataset " + theDataset.getIdentifier() + " is already released. Only draft versions can be released.", this);
         }
@@ -102,7 +104,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
                         throw new IllegalCommandException("This dataset may not be published because it has not been registered. Please contact Dataverse Support for assistance.", this);
                     }
                 }
-                
+
                 if (doiProvider.equals("DataCite")) {
                     try {
                         if (!ctxt.doiDataCite().alreadyExists(theDataset)) {
@@ -125,8 +127,9 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
                 throw new IllegalCommandException("This dataset may not be published because its DOI provider is not supported. Please contact Dataverse Support for assistance.", this);
             }
         }
-        
+
         if (theDataset.getPublicationDate() == null) {
+
             //Before setting dataset to released send notifications to users with download file
             List<RoleAssignment> ras = ctxt.roles().directRoleAssignments(theDataset);
             for (RoleAssignment ra : ras) {
@@ -163,6 +166,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
 
         for (DataFile dataFile : theDataset.getFiles()) {
             if (dataFile.getPublicationDate() == null) {
+
                 // this is a new, previously unpublished file, so publish by setting date
                 dataFile.setPublicationDate(updateTime);
 
@@ -185,8 +189,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
 
         theDataset.setFileAccessRequest(theDataset.getLatestVersion().getTermsOfUseAndAccess().isFileAccessRequest());
         Dataset savedDataset = ctxt.em().merge(theDataset);
-     
-                
+
         // set the subject of the parent (all the way up) Dataverses
         DatasetField subject = null;
         for (DatasetField dsf : savedDataset.getLatestVersion().getDatasetFields()) {
@@ -238,74 +241,98 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
                 throw new CommandException(ResourceBundle.getBundle("Bundle").getString("dataset.publish.error.datacite"), this);
             }
         }
-        
+
         /*
         MoveIndexing to after DOI update so that if command exception is thrown the re-index will not
         
          */
-        
         boolean doNormalSolrDocCleanUp = true;
         ctxt.index().indexDataset(savedDataset, doNormalSolrDocCleanUp);
         /**
-         * @todo consider also ctxt.solrIndex().indexPermissionsOnSelfAndChildren(theDataset);
+         * @todo consider also
+         * ctxt.solrIndex().indexPermissionsOnSelfAndChildren(theDataset);
          */
         /**
          * @todo what should we do with the indexRespose?
          */
         IndexResponse indexResponse = ctxt.solrIndex().indexPermissionsForOneDvObject(savedDataset);
+
+        //////////////////////////////////////////////////
+
         
+        publishProv.setAgent(getUser().getIdentifier());
+        publishProv.setOriginator(ctxt.systemConfig().getDataverseSiteUrl());
+        publishProv.setVersionNumber(theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber());
+        publishProv.setDatasetTransformation("FromUI");
+        publishProv.setDatasetName(theDataset.getIdentifier() + publishProv.getVersionNumber());
+        publishProv.setParentName("FromUI");
         
+        int dFnum = 1;
+        for (DataFile dataFile : theDataset.getFiles()) {
+            for (FileMetadata datafile : dataFile.getFileMetadatas()) {
+                publishProv.addToAddedFiles( dataFile.getFileMetadatas().get(dFnum).getLabel());
+            }
+        }
         
-        /******
-        ******/
+   
         
+        PublishDatasetProvCommand.execute(theDataset);
+        
+        /**
+         * ****
+         *****
+         */
+        /*
         String originator = ctxt.systemConfig().getDataverseSiteUrl();
-        
+
         String versionNumber = theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber();
         String versionTransformation = "fromUI / tracked change";
         String datasetTransformation = "fromUI";
         String name = theDataset.getIdentifier() + versionNumber;
         String agent = getUser().getIdentifier();
         String parentName = "fromUI";
+
+        /*
+        things needed from UI:
+        parent dataset : null, parent
+        transformation : automatic/manual
         
-        PublishDatasetProv.msg("CPLObject.lookup("+"originator: "+ originator+", name: "+name+", type: entity");
-        PublishDatasetProv.msg("agent: "+agent);
-        
+         
+        PublishDatasetProvCommand.msg("CPLObject.lookup(" + "originator: " + originator + ", name: " + name + ", type: entity");
+        PublishDatasetProvCommand.msg("agent: " + agent);
+
         // if no datasetTransformation or parentDatset is given by the user then it is a new dataset or a new version of a dataset
-        
-        if (theDataset.getPublicationDate() == null) {
-            PublishDatasetProv.createProv(originator, name, agent, versionTransformation, versionNumber, theDataset);
-            
+        if (isNewDataset == true) {
+            PublishDatasetProvCommand.createProv(originator, name, agent, versionTransformation, versionNumber, theDataset);
+
+        } else {
+            PublishDatasetProvCommand.createProv(originator, name, agent, parentName, datasetTransformation, versionNumber, theDataset);
         }
-        else {
-            PublishDatasetProv.createProv(originator, name, agent, parentName, datasetTransformation, versionNumber, theDataset);
-        }
-        
-        PublishDatasetProv.msg("version: "+theDataset.getLatestVersion()); 
-        PublishDatasetProv.msg("versionMajor: "+theDataset.getVersionNumber());
-        PublishDatasetProv.msg("versionMinor: "+theDataset.getMinorVersionNumber());
-        
-        
+
+        PublishDatasetProvCommand.msg("version: " + theDataset.getLatestVersion());
+        PublishDatasetProvCommand.msg("versionMajor: " + theDataset.getVersionNumber());
+        PublishDatasetProvCommand.msg("versionMinor: " + theDataset.getMinorVersionNumber());
+
         int dFnum = 1;
-        for (DataFile dataFile: theDataset.getFiles() ){
-            
-            for (FileMetadata datafile: dataFile.getFileMetadatas()){
+        for (DataFile dataFile : theDataset.getFiles()) {
+
+            for (FileMetadata datafile : dataFile.getFileMetadatas()) {
                 msg("test");
                 msg(dataFile.getFileMetadatas().get(dFnum).getLabel());
 
             }
-            
-            PublishDatasetProv.msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
-            
-            
+
+            PublishDatasetProvCommand.msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
+
             dFnum++;
-        } 
+        }
+        */
+        /**
+         * ****
+         *****
+         */
         
-        /******
-        ******/
-        
-        
-        
+        setDateverseSitURL(ctxt.getDataverseSiteUrl);
         return savedDataset;
     }
 

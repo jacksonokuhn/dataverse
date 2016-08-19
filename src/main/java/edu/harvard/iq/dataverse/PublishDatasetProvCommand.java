@@ -5,9 +5,9 @@
  */
 package edu.harvard.iq.dataverse;
 
-import java.util.List;
-import javax.ejb.EJB;
+import edu.harvard.iq.dataverse.engine.command.CommandContext;
 
+////////////////////////////
 
 
 /**
@@ -15,8 +15,69 @@ import javax.ejb.EJB;
  * @author eli
  */
 
+
+
+
 //class for addition of prov on 
-public class PublishDatasetProv extends ProvCommand {
+public class PublishDatasetProvCommand {
+
+    public static void msg(String str) {
+            System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+            System.out.println(str);
+            System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    }
+    
+    
+    public void execute (Dataset theDataset, String agent, CommandContext ctxt) {
+
+        Prov getProv = new Prov();
+        
+        String originator = ctxt.systemConfig().getDataverseSiteUrl();
+        String versionNumber = theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber();
+        String versionTransformation = "fromUI / tracked change";
+        String datasetTransformation = "fromUI";
+        String name = theDataset.getIdentifier() + versionNumber;
+        String parentName = "fromUI";
+
+        ProvFactory pF = new ProvFactory(originator);
+        pF.setBundle(originator, name);
+
+        if (getProv.getIsNewDS() == true) {
+
+            //draw hadMember relationship to container
+            //draw hadMember relationships from DF to container
+
+            CPLObject container = new pF.createEntity(name);
+
+            for (DataFile datafile: theDataset.getFiles()){
+
+            }
+
+        }
+        else if (getProv.getChangedDSMetadata() == true) {
+
+        }
+        else if (getProv.getChangedDFMetadata() == true) {
+
+        }
+
+    }
+}
+
+
+
+////////////////////////////
+
+//picture of what the graph should look like / CPL calls
+
+
+/**
+ *
+ * @author eli
+ */
+/*
+//class for addition of prov on 
+public class PublishDatasetProvCommand extends ProvCommand {
     
      @EJB
      DataFileServiceBean datafileService;
@@ -36,7 +97,7 @@ public class PublishDatasetProv extends ProvCommand {
         // responsible than do nothing, else new attribution edge
         // 
         
-        Float[] datasetVersionArray = [];
+        // Float[] datasetVersionArray = [];
         
         Integer datafileMetadataSize = datafile.getFileMetadatas().size();
         List<FileMetadata> datafileMetadataList = datafile.getFileMetadatas();
@@ -44,7 +105,12 @@ public class PublishDatasetProv extends ProvCommand {
         
         }
      
-        for (DataFile datafile: theDataset.getFiles());
+        
+        //for changing file metadata just change the collection not dataset, and no need to iterate through
+        // the datafiles
+        // Edge = AncestryEntry
+        
+        for (DataFile datafile: theDataset.getFiles()){
             
             DataFile currentDatafile = datafileService.find(datafile.getId());
             String storageId = currentDatafile.getStorageIdentifier();
@@ -58,7 +124,7 @@ public class PublishDatasetProv extends ProvCommand {
                 CPLEdge wasAttrTo = pF.createWasAttributedTo(StorageId, byAgent);
                 
             }
-            else if(pF.CPLObject.lookup(originator, storageId, "activity") != null) { 
+            else if(CPLObject.lookup(originator, storageId, "activity") != null) { 
                 
                 Long curDatasetVersion = datafile.getFileMetadatas().get(dFnum).getDatasetVersion();
                 
@@ -82,7 +148,7 @@ public class PublishDatasetProv extends ProvCommand {
             else {
             
             }
-            
+        }    
             //CPLObject createdDatafile1 = pF.createEntity(storageId);
             
            
@@ -92,6 +158,8 @@ public class PublishDatasetProv extends ProvCommand {
             
             //Integer datafileMetadataSize = datafile.getFileMetadatas().size();
             //List<FileMetadata> datafileMetadataList = datafile.getFileMetadatas();
+            
+            /*
             for (Integer i = 0; i < datafileMetadataSize; i++){
                 //accessing metadata
                 
@@ -117,8 +185,9 @@ public class PublishDatasetProv extends ProvCommand {
             msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
             
             dFnum++;
+            
     }
-        /*
+        
         DATAFILE VERSIONING PSUEDOCODE
 
         on creation of new dataset iterate through datafiles
@@ -129,25 +198,29 @@ public class PublishDatasetProv extends ProvCommand {
 
         draw the is replacement line
 
-        */
+        
     
     
+    //create an execute command here
     
+    //
     // creation of provenance for either a completely new dataset, or a new version of a dataset
     public static  void createProv(String originator, String name, String agent, String versionTransformation, String versionNumber, Dataset theDataset){
         
-        if (versionTransformation == null){
+        
         
             ProvFactory pF = new ProvFactory(originator);
             pF.setBundle(originator, name);
 
             CPLObject createdDataset = pF.createEntity(name);
-            CPLObject byAgent = pF.createAgent(agent);
+            
+            
+            CPLObject byAgent = pF.lookupOrCreateAgent(agent);
 
             CPLEdge wasAttrTo = pF.createWasAttributedTo(byAgent, createdDataset);
 
             addDatafileProv(originator, agent, name, theDataset);
-        }
+        
 
         //if the dataset is being created for the first time
         if (versionNumber != "1.0" || versionTransformation == null){
@@ -190,3 +263,4 @@ public class PublishDatasetProv extends ProvCommand {
 
     
 }
+*/
