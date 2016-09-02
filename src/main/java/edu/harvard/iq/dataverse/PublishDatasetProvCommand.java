@@ -50,6 +50,7 @@ public class PublishDatasetProvCommand {
             CPLObject container = new pF.createEntity(name);
 
             for (DataFile datafile: theDataset.getFiles()){
+                CPLObject datafile 
 
             }
 
@@ -159,7 +160,7 @@ public class PublishDatasetProvCommand extends ProvCommand {
             //Integer datafileMetadataSize = datafile.getFileMetadatas().size();
             //List<FileMetadata> datafileMetadataList = datafile.getFileMetadatas();
             
-            /*
+            
             for (Integer i = 0; i < datafileMetadataSize; i++){
                 //accessing metadata
                 
@@ -187,7 +188,7 @@ public class PublishDatasetProvCommand extends ProvCommand {
             dFnum++;
             
     }
-        
+        /*
         DATAFILE VERSIONING PSUEDOCODE
 
         on creation of new dataset iterate through datafiles
@@ -262,5 +263,4 @@ public class PublishDatasetProvCommand extends ProvCommand {
     }  
 
     
-}
-*/
+}*/

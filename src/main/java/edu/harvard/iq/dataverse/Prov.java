@@ -5,12 +5,9 @@
  */
 package edu.harvard.iq.dataverse;
 
-import edu.harvard.iq.dataverse.engine.command.CommandContext;
-import edu.harvard.iq.dataverse.engine.command.exception.CommandException;
 import java.util.Arrays;
 import java.util.List;
-import javax.ejb.EJB;
-import java.util.Optional;
+
 
 /**
  *
@@ -23,6 +20,7 @@ public class Prov extends ProvCommand{
     private Boolean changedDFMetadata = false;
     private Boolean isNewDFVersion = false;
     private Boolean isNewDS = false;
+    private Boolean isDeaccessed = false;
     private List<String> addedFiles;
     private List<String> removedFiles;
     private List<String> changedFiles;
@@ -32,7 +30,6 @@ public class Prov extends ProvCommand{
     private String datasetTransformation;
     private String datasetName;  
     private String parentName;
-
     
     public void setChangedDSMetadata(Boolean bool) {
         changedDSMetadata = bool;
@@ -56,6 +53,14 @@ public class Prov extends ProvCommand{
      
     public Boolean getIsNewDS() {
         return this.isNewDS;
+    }
+    
+    public void setIsDeaccessed(Boolean bool) {
+        isDeaccessed = bool;
+    }
+    
+    public Boolean getIsDeaccessed() {
+        return this.isDeaccessed;
     }
     
     public void addToAddedFiles(String FileId) {

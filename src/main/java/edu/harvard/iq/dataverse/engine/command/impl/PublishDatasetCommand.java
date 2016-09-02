@@ -270,7 +270,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         int dFnum = 1;
         for (DataFile dataFile : theDataset.getFiles()) {
             for (FileMetadata datafile : dataFile.getFileMetadatas()) {
-                publishProv.addToAddedFiles( dataFile.getFileMetadatas().get(dFnum).getLabel());
+                publishProv.addToAddedFiles(dataFile.getFileMetadatas().get(dFnum).getLabel());
             }
         }
         
@@ -332,7 +332,6 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
          *****
          */
         
-        setDateverseSitURL(ctxt.getDataverseSiteUrl);
         return savedDataset;
     }
 
