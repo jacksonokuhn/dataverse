@@ -8,6 +8,9 @@ package edu.harvard.iq.dataverse;
 import java.util.Arrays;
 import java.util.List;
 
+/Users/eli/NetBeansProjects/Dataverse/src/main/java/edu/harvard/iq/dataverse/Prov.java
+
+//December is release of provenance
 
 /**
  *
@@ -30,6 +33,11 @@ public class Prov extends ProvCommand{
     private String datasetTransformation;
     private String datasetName;  
     private String parentName;
+    private String bundleProvUUID;
+    
+    private String uploadProvFile;
+    
+    
     
     public void setChangedDSMetadata(Boolean bool) {
         changedDSMetadata = bool;
@@ -149,5 +157,14 @@ public class Prov extends ProvCommand{
     
     public String getAgent() {
         return this.agent;
+    }
+    
+    public void setBundleProvUUID String setBundleProvUUID) {
+        bundleProvUUID = setBundleProvUUID;
+    }
+    
+    public String getBundleProvUUID() {
+        
+        return this.bundleProvUUID;
     }
 }

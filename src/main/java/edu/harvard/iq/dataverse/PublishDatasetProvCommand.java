@@ -28,14 +28,15 @@ public class PublishDatasetProvCommand {
     }
     
     
-    public void execute (Dataset theDataset, String agent, CommandContext ctxt) {
-
+    public void execute (Dataset theDataset) {
+        
         Prov getProv = new Prov();
         
-        String originator = ctxt.systemConfig().getDataverseSiteUrl();
+        String originator = getProv.getOriginator();
         String versionNumber = theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber();
         String versionTransformation = "fromUI / tracked change";
-        String datasetTransformation = "fromUI";
+        //TODO get tracked change data from DV
+        String datasetTransformation = "fromUI";    
         String name = theDataset.getIdentifier() + versionNumber;
         String parentName = "fromUI";
 
@@ -50,7 +51,7 @@ public class PublishDatasetProvCommand {
             CPLObject container = new pF.createEntity(name);
 
             for (DataFile datafile: theDataset.getFiles()){
-                CPLObject datafile 
+                CPLObject datafile = 
 
             }
 

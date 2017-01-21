@@ -265,6 +265,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         publishProv.setVersionNumber(theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber());
         publishProv.setDatasetTransformation("FromUI");
         publishProv.setDatasetName(theDataset.getIdentifier() + publishProv.getVersionNumber());
+        //prefix with UUID's
         publishProv.setParentName("FromUI");
         
         int dFnum = 1;
@@ -279,7 +280,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         PublishDatasetProvCommand.execute(theDataset);
         
         /**
-         * ****
+         *****
          *****
          */
         /*
@@ -291,6 +292,8 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         String name = theDataset.getIdentifier() + versionNumber;
         String agent = getUser().getIdentifier();
         String parentName = "fromUI";
+        // make dataset object for parentName
+      
 
         /*
         things needed from UI:
