@@ -25,10 +25,13 @@ import edu.harvard.iq.dataverse.DataFile.ChecksumType;
 import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.FileMetadata;
 import edu.harvard.iq.dataverse.TermsOfUseAndAccess;
+import edu.harvard.iq.dataverse.dataaccess.ImageThumbConverter;
+import edu.harvard.iq.dataverse.dataset.DatasetThumbnail;
 import edu.harvard.iq.dataverse.datasetutility.FileExceedsMaxSizeException;
 import edu.harvard.iq.dataverse.ingest.IngestReport;
 import edu.harvard.iq.dataverse.ingest.IngestServiceShapefileHelper;
 import edu.harvard.iq.dataverse.ingest.IngestableDataChecker;
+import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,6 +40,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ResourceBundle;
 import java.util.MissingResourceException;
 import java.nio.channels.FileChannel;
@@ -67,6 +71,7 @@ import javax.xml.stream.XMLStreamReader;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import javax.imageio.ImageIO;
 
 
 /**
@@ -123,7 +128,15 @@ public class FileUtil implements java.io.Serializable  {
     public static final String MIME_TYPE_UNDETERMINED_BINARY = "application/binary";
     
     public static final String SAVED_ORIGINAL_FILENAME_EXTENSION = "orig";
-    
+
+
+    /**
+     * This string can be prepended to a Base64-encoded representation of a PNG
+     * file in order to imbed an image directly into an HTML page using the
+     * "img" tag. See also https://en.wikipedia.org/wiki/Data_URI_scheme
+     */
+    public static String DATA_URI_SCHEME = "data:image/png;base64,";
+
     public FileUtil() {
     }
     
@@ -291,7 +304,10 @@ public class FileUtil implements java.io.Serializable  {
         // step 3: check the mime type of this file with Jhove
         if (fileType == null){
             JhoveFileType jw = new JhoveFileType();
-            fileType = jw.getFileMimeType(f);
+            String mimeType = jw.getFileMimeType(f);
+            if (mimeType != null) {
+                fileType = mimeType;
+            }
         }
         
         // step 4: 
@@ -303,7 +319,7 @@ public class FileUtil implements java.io.Serializable  {
             logger.fine("fileExtension="+fileExtension);
 
             if (fileType == null || fileType.startsWith("text/plain") || "application/octet-stream".equals(fileType)) {
-                if (fileType.startsWith("text/plain") && STATISTICAL_FILE_EXTENSION.containsKey(fileExtension)) {
+                if (fileType != null && fileType.startsWith("text/plain") && STATISTICAL_FILE_EXTENSION.containsKey(fileExtension)) {
                     fileType = STATISTICAL_FILE_EXTENSION.get(fileExtension);
                 } else {
                     fileType = determineFileTypeByExtension(fileName);
@@ -1299,6 +1315,50 @@ public class FileUtil implements java.io.Serializable  {
         boolean gbRecordsWritten = false;
         String path = getFileDownloadUrlPath(downloadType, fileId, gbRecordsWritten);
         return dataverseSiteUrl + path;
+    }
+    
+    public static File inputStreamToFile(InputStream inputStream) throws IOException {
+        if (inputStream == null) {
+            logger.info("In inputStreamToFile but inputStream was null! Returning null rather than a File.");
+            return null;
+        }
+        File file = File.createTempFile(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+        OutputStream outputStream = new FileOutputStream(file);
+        int read = 0;
+        byte[] bytes = new byte[1024];
+        while ((read = inputStream.read(bytes)) != -1) {
+            outputStream.write(bytes, 0, read);
+        }
+        return file;
+    }
+
+    public static String rescaleImage(File file) throws IOException {
+        if (file == null) {
+            logger.info("file was null!!");
+            return null;
+        }
+        File tmpFile = File.createTempFile("tempFileToRescale", ".tmp");
+        BufferedImage fullSizeImage = ImageIO.read(file);
+        if (fullSizeImage == null) {
+            logger.info("fullSizeImage was null!");
+            return null;
+        }
+        int width = fullSizeImage.getWidth();
+        int height = fullSizeImage.getHeight();
+        FileChannel src = new FileInputStream(file).getChannel();
+        FileChannel dest = new FileOutputStream(tmpFile).getChannel();
+        dest.transferFrom(src, 0, src.size());
+        String pathToResizedFile = ImageThumbConverter.rescaleImage(fullSizeImage, width, height, ImageThumbConverter.DEFAULT_CARDIMAGE_SIZE, tmpFile.getAbsolutePath());
+        File resizedFile = new File(pathToResizedFile);
+        return ImageThumbConverter.getImageAsBase64FromFile(resizedFile);
+    }
+    
+    public static DatasetThumbnail getThumbnail(DataFile file) {
+
+        String imageSourceBase64 = ImageThumbConverter.getImageThumbAsBase64(file, ImageThumbConverter.DEFAULT_THUMBNAIL_SIZE);
+        DatasetThumbnail defaultDatasetThumbnail = new DatasetThumbnail(imageSourceBase64, file);
+        return defaultDatasetThumbnail;
+
     }
 
 }

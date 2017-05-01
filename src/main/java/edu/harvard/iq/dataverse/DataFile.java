@@ -11,6 +11,7 @@ import edu.harvard.iq.dataverse.api.WorldMapRelatedData;
 import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
 import edu.harvard.iq.dataverse.dataaccess.DataAccess;
 import edu.harvard.iq.dataverse.dataaccess.DataFileIO;
+import edu.harvard.iq.dataverse.dataset.DatasetThumbnail;
 import edu.harvard.iq.dataverse.ingest.IngestReport;
 import edu.harvard.iq.dataverse.ingest.IngestRequest;
 import edu.harvard.iq.dataverse.util.BundleUtil;
@@ -28,6 +29,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.logging.Logger;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.persistence.Entity;
@@ -61,6 +63,7 @@ import org.hibernate.validator.constraints.NotBlank;
 		, @Index(columnList="contenttype")
 		, @Index(columnList="restricted")})
 public class DataFile extends DvObject implements Comparable {
+    private static final Logger logger = Logger.getLogger(DatasetPage.class.getCanonicalName());
     private static final long serialVersionUID = 1L;
     
     public static final char INGEST_STATUS_NONE = 65;
@@ -799,7 +802,21 @@ public class DataFile extends DvObject implements Comparable {
     public String getDisplayName() {
         // @todo should we show the published version label instead?
         // currently this method is not being used
-        return getLatestFileMetadata().getLabel();
+       return getLatestFileMetadata().getLabel(); 
+       /*
+       Taking out null check to see if npe persists.
+       Really shouldn't need it 
+       a file should always have a latest metadata
+       
+               ////if (getLatestFileMetadata() != null) {
+           return getLatestFileMetadata().getLabel(); 
+       // }
+       // logger.fine("DataFile getLatestFileMetadata is null for DataFile id = " + this.getId());
+       // return "";
+       
+       */
+
+
     }
     
     @Override
@@ -982,6 +999,16 @@ public class DataFile extends DvObject implements Comparable {
         }
         return null;
     }
+    
+    
+    public String getThumbnailString() {
+        DatasetThumbnail datasetThumbnail = FileUtil.getThumbnail(this);
+        if (datasetThumbnail == null) {
+            return null;
+        }
+        return datasetThumbnail.getBase64image();
+    }
+    
 
 } // end of class
     
