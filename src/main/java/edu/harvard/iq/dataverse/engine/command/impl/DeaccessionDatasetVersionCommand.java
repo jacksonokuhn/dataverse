@@ -8,6 +8,7 @@ package edu.harvard.iq.dataverse.engine.command.impl;
 
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetVersion;
+import edu.harvard.iq.dataverse.Prov;
 import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.engine.command.AbstractCommand;
 
@@ -44,6 +45,8 @@ public class DeaccessionDatasetVersionCommand extends AbstractCommand<DatasetVer
     public DatasetVersion execute(CommandContext ctxt) throws CommandException {
         Dataset ds = theVersion.getDataset();        
 
+        Prov deaccessProv = new Prov();
+        
         theVersion.setVersionState(DatasetVersion.VersionState.DEACCESSIONED);
         
         if (deleteDOIIdentifier) {
@@ -89,6 +92,14 @@ public class DeaccessionDatasetVersionCommand extends AbstractCommand<DatasetVer
         // And save the dataset, to get the "last exported" timestamp right:
         
         Dataset managedDs = ctxt.em().merge(managed.getDataset());
+
+        // Prov
+        deaccessProv.setAgent(getUser().getIdentifier());
+        deaccessProv.setOriginator(ctxt.systemConfig().getDataverseSiteUrl());
+        deaccessProv.setVersionNumber(ds.getVersionNumber() + "." + ds.getMinorVersionNumber());
+        deaccessProv.setDatasetTransformation("FromUI");
+        deaccessProv.setDatasetName(ds.getIdentifier() + ds.getVersionNumber());
+        deaccessProv.setParentName("FromUI");
         
         return managed;
     }

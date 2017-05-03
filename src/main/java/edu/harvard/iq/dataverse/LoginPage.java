@@ -103,6 +103,7 @@ public class LoginPage implements java.io.Serializable {
     private AuthenticationProvider authProvider;
 
     public void init() {
+        System.out.println("Login Page.....");
         Iterator<String> credentialsIterator = authSvc.getAuthenticationProviderIdsOfType( CredentialsAuthenticationProvider.class ).iterator();
         if ( credentialsIterator.hasNext() ) {
             setCredentialsAuthProviderId(credentialsIterator.next());

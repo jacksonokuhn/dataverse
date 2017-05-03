@@ -653,7 +653,7 @@ if ( $psql_exec eq "" )
 
 # 4a. BUT FIRST, CHECK IF WE CAN TALK TO POSTGRES AS THE ADMIN:
 
-if ( $psql_admin_exec eq "" || system( $psql_admin_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U postgres -d postgres -c 'SELECT * FROM pg_roles' > /dev/null 2>&1" ) ) 
+if ( $psql_admin_exec eq "" || system( $psql_admin_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U eli -d postgres -c 'SELECT * FROM pg_roles' > /dev/null 2>&1" ) ) 
 {
     # No, we can't. :(
     if ($pg_local_connection) 
@@ -751,7 +751,7 @@ else
     # 4c. CHECK IF THIS DB ALREADY EXISTS:
     
     my $psql_command_dbcheck =
-	$psql_admin_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U postgres -c \"\" -d " . $CONFIG_DEFAULTS{'POSTGRES_DATABASE'} . ">/dev/null 2>&1";
+	$psql_admin_exec . "/psql -h " . $CONFIG_DEFAULTS{'POSTGRES_SERVER'} . " -U eli -c \"\" -d " . $CONFIG_DEFAULTS{'POSTGRES_DATABASE'} . ">/dev/null 2>&1";
 
     if ( ( my $exitcode = system($psql_command_dbcheck) ) == 0 ) 
     {    

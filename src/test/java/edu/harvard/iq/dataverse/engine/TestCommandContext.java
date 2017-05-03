@@ -1,4 +1,4 @@
-package edu.harvard.iq.dataverse.engine;
+gitpackage edu.harvard.iq.dataverse.engine;
 
 import edu.harvard.iq.dataverse.authorization.providers.builtin.BuiltinUserServiceBean;
 import edu.harvard.iq.dataverse.*;
@@ -193,3 +193,4 @@ public class TestCommandContext implements CommandContext {
     }
 
 }
+    

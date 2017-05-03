@@ -12,6 +12,10 @@ import edu.harvard.iq.dataverse.DatasetFieldConstant;
 import edu.harvard.iq.dataverse.DatasetVersionUser;
 import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.Dataverse;
+import edu.harvard.iq.dataverse.FileMetadata;
+import edu.harvard.iq.dataverse.Prov;
+import edu.harvard.iq.dataverse.PublishDatasetProvCommand;
+import static edu.harvard.iq.dataverse.PublishDatasetProvCommand.msg;
 import edu.harvard.iq.dataverse.RoleAssignment;
 import edu.harvard.iq.dataverse.UserNotification;
 import edu.harvard.iq.dataverse.authorization.Permission;
@@ -43,6 +47,9 @@ import java.util.logging.Logger;
 import javax.json.JsonObjectBuilder;
 
 /**
+ * * creation of a dataset **
+ */
+/**
  *
  * @author skraffmiller
  */
@@ -51,6 +58,10 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
     private static final Logger logger = Logger.getLogger(PublishDatasetCommand.class.getCanonicalName());
     private static final int FOOLPROOF_RETRIAL_ATTEMPTS_LIMIT = 2 ^ 8;
 
+    //////        
+    Prov publishProv = new Prov();
+    //////
+    
     boolean minorRelease = false;
     Dataset theDataset;
 
@@ -66,6 +77,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         minorRelease = minor;
         theDataset = datasetIn;
     }
+
 
     @Override
     public Dataset execute(CommandContext ctxt) throws CommandException {
@@ -139,7 +151,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
                         throw new IllegalCommandException("Failed to create identifier (" + theDataset.getIdentifier() + ") with EZID: " + doiRetString, this);
                     }                    
                 }
-                
+
                 if (doiProvider.equals("DataCite")) {
                     try {
                         while (ctxt.doiDataCite().alreadyExists(theDataset) && attempts < FOOLPROOF_RETRIAL_ATTEMPTS_LIMIT) {
@@ -159,8 +171,9 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
                 throw new IllegalCommandException("This dataset may not be published because its DOI provider is not supported. Please contact Dataverse Support for assistance.", this);
             }
         }
-        
+
         if (theDataset.getPublicationDate() == null) {
+
             //Before setting dataset to released send notifications to users with download file
             List<RoleAssignment> ras = ctxt.roles().directRoleAssignments(theDataset);
             for (RoleAssignment ra : ras) {
@@ -197,6 +210,7 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
 
         for (DataFile dataFile : theDataset.getFiles()) {
             if (dataFile.getPublicationDate() == null) {
+
                 // this is a new, previously unpublished file, so publish by setting date
                 dataFile.setPublicationDate(updateTime);
 
@@ -304,17 +318,95 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         MoveIndexing to after DOI update so that if command exception is thrown the re-index will not
         
          */
-        
         boolean doNormalSolrDocCleanUp = true;
         ctxt.index().indexDataset(savedDataset, doNormalSolrDocCleanUp);
         /**
-         * @todo consider also ctxt.solrIndex().indexPermissionsOnSelfAndChildren(theDataset);
+         * @todo consider also
+         * ctxt.solrIndex().indexPermissionsOnSelfAndChildren(theDataset);
          */
         /**
          * @todo what should we do with the indexRespose?
          */
         IndexResponse indexResponse = ctxt.solrIndex().indexPermissionsForOneDvObject(savedDataset);
 
+        //////////////////////////////////////////////////
+
+        
+        publishProv.setAgent(getUser().getIdentifier());
+        publishProv.setOriginator(ctxt.systemConfig().getDataverseSiteUrl());
+        publishProv.setVersionNumber(theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber());
+        publishProv.setDatasetTransformation("FromUI");
+        publishProv.setDatasetName(theDataset.getIdentifier() + publishProv.getVersionNumber());
+        //prefix with UUID's
+        publishProv.setParentName("FromUI");
+        
+        int dFnum = 1;
+        for (DataFile dataFile : theDataset.getFiles()) {
+            for (FileMetadata datafile : dataFile.getFileMetadatas()) {
+                publishProv.addToAddedFiles(dataFile.getFileMetadatas().get(dFnum).getLabel());
+            }
+        }
+        
+   
+        
+        PublishDatasetProvCommand.execute(theDataset);
+        
+        /**
+         *****
+         *****
+         */
+        /*
+        String originator = ctxt.systemConfig().getDataverseSiteUrl();
+
+        String versionNumber = theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber();
+        String versionTransformation = "fromUI / tracked change";
+        String datasetTransformation = "fromUI";
+        String name = theDataset.getIdentifier() + versionNumber;
+        String agent = getUser().getIdentifier();
+        String parentName = "fromUI";
+        // make dataset object for parentName
+      
+
+        /*
+        things needed from UI:
+        parent dataset : null, parent
+        transformation : automatic/manual
+        
+         
+        PublishDatasetProvCommand.msg("CPLObject.lookup(" + "originator: " + originator + ", name: " + name + ", type: entity");
+        PublishDatasetProvCommand.msg("agent: " + agent);
+
+        // if no datasetTransformation or parentDatset is given by the user then it is a new dataset or a new version of a dataset
+        if (isNewDataset == true) {
+            PublishDatasetProvCommand.createProv(originator, name, agent, versionTransformation, versionNumber, theDataset);
+
+        } else {
+            PublishDatasetProvCommand.createProv(originator, name, agent, parentName, datasetTransformation, versionNumber, theDataset);
+        }
+
+        PublishDatasetProvCommand.msg("version: " + theDataset.getLatestVersion());
+        PublishDatasetProvCommand.msg("versionMajor: " + theDataset.getVersionNumber());
+        PublishDatasetProvCommand.msg("versionMinor: " + theDataset.getMinorVersionNumber());
+
+        int dFnum = 1;
+        for (DataFile dataFile : theDataset.getFiles()) {
+
+            for (FileMetadata datafile : dataFile.getFileMetadatas()) {
+                msg("test");
+                msg(dataFile.getFileMetadatas().get(dFnum).getLabel());
+
+            }
+
+            PublishDatasetProvCommand.msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
+
+            dFnum++;
+        }
+        */
+        /**
+         * ****
+         *****
+         */
+        
         return savedDataset;
     }
 
