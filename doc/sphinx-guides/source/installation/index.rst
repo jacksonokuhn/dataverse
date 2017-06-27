@@ -6,7 +6,7 @@
 Installation Guide
 ==================
 
-Contents:
+**Contents:**
 
 .. toctree::
 
@@ -18,5 +18,7 @@ Contents:
    administration
    upgrading
    r-rapache-tworavens
+   geoconnect
    shibboleth
    oauth2
+   data-capture-module

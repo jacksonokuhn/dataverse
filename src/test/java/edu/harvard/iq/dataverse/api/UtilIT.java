@@ -121,6 +121,10 @@ public class UtilIT {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
+    public static String getRandomDvAlias() {
+        return "dv" + getRandomIdentifier();
+    }
+
     static String getUsernameFromResponse(Response createUserResponse) {
         JsonPath createdUser = JsonPath.from(createUserResponse.body().asString());
         String username = createdUser.getString("data.user." + USERNAME_KEY);
@@ -223,6 +227,27 @@ public class UtilIT {
 
     private static String getDatasetJson() {
         File datasetVersionJson = new File("scripts/search/tests/data/dataset-finch1.json");
+        try {
+            String datasetVersionAsJson = new String(Files.readAllBytes(Paths.get(datasetVersionJson.getAbsolutePath())));
+            return datasetVersionAsJson;
+        } catch (IOException ex) {
+            Logger.getLogger(UtilIT.class.getName()).log(Level.SEVERE, null, ex);
+            return null;
+        }
+    }
+
+    static Response createDatasetViaNativeApi(String dataverseAlias, String pathToJsonFile, String apiToken) {
+        String jsonIn = getDatasetJson(pathToJsonFile);
+        Response createDatasetResponse = given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .body(jsonIn)
+                .contentType("application/json")
+                .post("/api/dataverses/" + dataverseAlias + "/datasets");
+        return createDatasetResponse;
+    }
+
+    private static String getDatasetJson(String pathToJsonFile) {
+        File datasetVersionJson = new File(pathToJsonFile);
         try {
             String datasetVersionAsJson = new String(Files.readAllBytes(Paths.get(datasetVersionJson.getAbsolutePath())));
             return datasetVersionAsJson;
@@ -555,6 +580,12 @@ public class UtilIT {
         return response;
     }
 
+    static Response getMetadataBlockFromDatasetVersion(String persistentId, String versionNumber, String metadataBlock, String apiToken) {
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .get("/api/datasets/:persistentId/versions/:latest-published/metadata/citation?persistentId=" + persistentId);
+    }
+
     static Response makeSuperUser(String username) {
         Response response = given().post("/api/admin/superuser/" + username);
         return response;
@@ -682,6 +713,14 @@ public class UtilIT {
         return given()
                 .header(API_TOKEN_HTTP_HEADER, apiToken)
                 .delete("/api/datasets/:persistentId/thumbnail" + "?persistentId=" + datasetPersistentId);
+    }
+
+    static Response exportDataset(String datasetPersistentId, String exporter, String apiToken) {
+//        http://localhost:8080/api/datasets/export?exporter=dataverse_json&persistentId=doi%3A10.5072/FK2/W6WIMQ
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                //                .get("/api/datasets/:persistentId/export" + "?persistentId=" + datasetPersistentId + "&exporter=" + exporter);
+                .get("/api/datasets/export" + "?persistentId=" + datasetPersistentId + "&exporter=" + exporter);
     }
 
     static Response search(String query, String apiToken) {
@@ -878,6 +917,15 @@ public class UtilIT {
         return given()
                 .header(API_TOKEN_HTTP_HEADER, apiToken)
                 .delete("/api/files/" + fileId + "/map?key=" + apiToken);
+    }
+
+    static Response getRsyncScript(String datasetPersistentId, String apiToken) {
+        RequestSpecification requestSpecification = given();
+        if (apiToken != null) {
+            requestSpecification = given()
+                    .header(UtilIT.API_TOKEN_HTTP_HEADER, apiToken);
+        }
+        return requestSpecification.get("/api/datasets/:persistentId/dataCaptureModule/rsync?persistentId=" + datasetPersistentId);
     }
 
     @Test
