@@ -62,9 +62,8 @@ public class CreateDatasetVersionCommand extends AbstractCommand<DatasetVersion>
         }
         newVersion.setDataset(dataset);
 
-        msg("TESTSETRESTESTS");
-
         //Prov???
+        msg("TESTTEST");
         msg("CDVCversion: "+dataset.getLatestVersion()); 
         int dFnum = 1;
         for (DataFile dataFile: dataset.getFiles() ){
