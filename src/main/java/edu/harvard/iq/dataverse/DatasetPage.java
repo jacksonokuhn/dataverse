@@ -5,7 +5,9 @@ import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.authorization.providers.builtin.BuiltinUserServiceBean;
 import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
 import edu.harvard.iq.dataverse.authorization.users.PrivateUrlUser;
+import edu.harvard.iq.dataverse.dataaccess.DataFileIO;
 import edu.harvard.iq.dataverse.dataaccess.ImageThumbConverter;
+import edu.harvard.iq.dataverse.dataaccess.SwiftAccessIO;
 import edu.harvard.iq.dataverse.dataset.DatasetThumbnail;
 import edu.harvard.iq.dataverse.datavariable.VariableServiceBean;
 import edu.harvard.iq.dataverse.engine.command.Command;
@@ -76,6 +78,10 @@ import javax.faces.model.SelectItem;
 import java.util.logging.Level;
 import edu.harvard.iq.dataverse.datasetutility.TwoRavensHelper;
 import edu.harvard.iq.dataverse.datasetutility.WorldMapPermissionHelper;
+import edu.harvard.iq.dataverse.engine.command.impl.RestrictFileCommand;
+import edu.harvard.iq.dataverse.engine.command.impl.ReturnDatasetToAuthorCommand;
+import edu.harvard.iq.dataverse.engine.command.impl.SubmitDatasetForReviewCommand;
+import java.util.Collections;
 
 import javax.faces.event.AjaxBehaviorEvent;
 
@@ -389,21 +395,41 @@ public class DatasetPage implements java.io.Serializable {
     public void setDataverseSiteUrl(String dataverseSiteUrl) {
         this.dataverseSiteUrl = dataverseSiteUrl;
     }
-    //TODO: 
-    //Consolidate this & FilePage in static function in the SwiftAccessIO
 
-    public String getSwiftContainerName(){
-        String swiftContainerName = null;
-        String swiftFolderPathSeparator = "-";
-        if (persistentId != null) {
-            dataset = datasetService.findByGlobalId(persistentId); 
-            String authorityNoSlashes = dataset.getAuthority().replace(dataset.getDoiSeparator(), swiftFolderPathSeparator);
-            swiftContainerName = dataset.getProtocol() + swiftFolderPathSeparator + authorityNoSlashes.replace(".", swiftFolderPathSeparator)
-                + swiftFolderPathSeparator + dataset.getIdentifier();
-            logger.fine("Swift container name: " + swiftContainerName);
+    public DataFile getInitialDataFile(){
+        Long datasetVersion = workingVersion.getId();
+        if (datasetVersion != null) {
+                int unlimited = 0;
+                int maxResults = unlimited;
+            List<FileMetadata> metadatas = datafileService.findFileMetadataByDatasetVersionId(datasetVersion, maxResults, fileSortField, fileSortOrder);        
+                logger.fine("metadatas " + metadatas);
+            if (metadatas != null && metadatas.size() > 0) {
+                return metadatas.get(0).getDataFile();
+            }
         }
+        return null;
+    }
+    
+    public String getSwiftContainerName(){
 
-        return swiftContainerName;
+        String swiftContainerName;
+        try {
+            DataFileIO dataFileIO = getInitialDataFile().getDataFileIO();
+            try {
+                SwiftAccessIO swiftIO = (SwiftAccessIO)dataFileIO;
+                swiftIO.open();
+                swiftContainerName = swiftIO.getSwiftContainerName();
+                logger.info("Swift container name: " + swiftContainerName);
+                return swiftContainerName;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        return "";
     }
     
     public void setSwiftContainerName(String name){
@@ -415,20 +441,14 @@ public class DatasetPage implements java.io.Serializable {
     //SF 
     public Boolean isSwiftStorage(){
         Boolean swiftBool = false;
-        //dataset = datasetService.findByGlobalId(persistentId);
-        Long datasetVersion = workingVersion.getId();
-        if (datasetVersion != null) {
-                int unlimited = 0;
-                int maxResults = unlimited;
-            List<FileMetadata> metadatas = datafileService.findFileMetadataByDatasetVersionId(datasetVersion, maxResults, fileSortField, fileSortOrder);        
-                logger.fine("metadatas " + metadatas);
-            if (metadatas != null && metadatas.size() > 0) {
-                if ("swift".equals(System.getProperty("dataverse.files.storage-driver-id")) 
-                    && metadatas.get(0).getDataFile().getStorageIdentifier().startsWith("swift://")) {
-                    swiftBool = true;
-                }
+        //containers without datafiles will not be stored in swift storage, so no compute
+        if (getInitialDataFile() != null){
+            if ("swift".equals(System.getProperty("dataverse.files.storage-driver-id")) 
+                && getInitialDataFile().getStorageIdentifier().startsWith("swift://")) {
+                swiftBool = true;
             }
         }
+        
         return swiftBool;
     }
 
@@ -1309,6 +1329,10 @@ public class DatasetPage implements java.io.Serializable {
                 workingVersion = dataset.getCreateVersion();
                 updateDatasetFieldInputLevels();
             }
+            
+            if (settingsService.isTrueForKey(SettingsServiceBean.Key.PublicInstall, false)){
+                JH.addMessage(FacesMessage.SEVERITY_WARN, BundleUtil.getStringFromBundle("dataset.message.publicInstall"));
+            }
 
             resetVersionUI();
 
@@ -1519,53 +1543,30 @@ public class DatasetPage implements java.io.Serializable {
     }
 
     public String sendBackToContributor() {
-        Command<Dataset> cmd;
-        workingVersion = dataset.getEditVersion();
-        workingVersion.setInReview(false);
         try {
-            cmd = new UpdateDatasetCommand(dataset, dvRequestService.getDataverseRequest());
-            ((UpdateDatasetCommand) cmd).setValidateLenient(true); 
+            //FIXME - Get Return Comment from sendBackToContributor popup
+            Command<Dataset> cmd = new ReturnDatasetToAuthorCommand(dvRequestService.getDataverseRequest(), dataset, "");
             dataset = commandEngine.submit(cmd);
+            JsfHelper.addSuccessMessage(BundleUtil.getStringFromBundle("dataset.reject.success"));
         } catch (CommandException ex) {
-            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN, "Dataset Submission Failed", " - " + ex.toString()));
-            logger.severe(ex.getMessage());
-            return "";
+            String message = ex.getMessage();
+            logger.severe("sendBackToContributor: " + message);
+            JsfHelper.addErrorMessage(BundleUtil.getStringFromBundle("dataset.reject.failure", Collections.singletonList(message)));
         }
-        List<AuthenticatedUser> authUsers = permissionService.getUsersWithPermissionOn(Permission.PublishDataset, dataset);
-        List<AuthenticatedUser> editUsers = permissionService.getUsersWithPermissionOn(Permission.EditDataset, dataset);
-        for (AuthenticatedUser au : authUsers) {
-            editUsers.remove(au);
-        }
-        for (AuthenticatedUser au : editUsers) {
-            userNotificationService.sendNotification(au, new Timestamp(new Date().getTime()), UserNotification.Type.RETURNEDDS, dataset.getLatestVersion().getId());
-        }
-
-        FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_INFO, "DatasetSubmitted", "This dataset has been sent back to the contributor.");
-        FacesContext.getCurrentInstance().addMessage(null, message);
-        return  returnToLatestVersion();
+        return returnToLatestVersion();
     }
 
     public String submitDataset() {
-        Command<Dataset> cmd;
-        workingVersion = dataset.getEditVersion();
-        workingVersion.setInReview(true);
         try {
-            cmd = new UpdateDatasetCommand(dataset, dvRequestService.getDataverseRequest());
-            ((UpdateDatasetCommand) cmd).setValidateLenient(true); 
+            Command<Dataset> cmd = new SubmitDatasetForReviewCommand( dvRequestService.getDataverseRequest(), dataset);
             dataset = commandEngine.submit(cmd);
+            JsfHelper.addSuccessMessage(BundleUtil.getStringFromBundle("dataset.submit.success"));
         } catch (CommandException ex) {
-            FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN, "Dataset Submission Failed", " - " + ex.toString()));
-            logger.severe(ex.getMessage());
-            return "";
+            String message = ex.getMessage();
+            logger.severe("submitDataset: " + message);
+            JsfHelper.addErrorMessage(BundleUtil.getStringFromBundle("dataset.submit.failure", Collections.singletonList(message)));
         }
-        List<AuthenticatedUser> authUsers = permissionService.getUsersWithPermissionOn(Permission.PublishDataset, dataset);
-        for (AuthenticatedUser au : authUsers) {
-            userNotificationService.sendNotification(au, new Timestamp(new Date().getTime()), UserNotification.Type.SUBMITTEDDS, dataset.getLatestVersion().getId());
-        }
-
-        FacesMessage message = new FacesMessage(FacesMessage.SEVERITY_INFO, "DatasetSubmitted", "Your dataset has been submitted for review.");
-        FacesContext.getCurrentInstance().addMessage(null, message);
-        return  returnToLatestVersion();
+        return returnToLatestVersion();
     }
     
     public String releaseParentDVAndDataset(){
@@ -1707,10 +1708,10 @@ public class DatasetPage implements java.io.Serializable {
     }
 
     public String registerDataset() {
-        Command<Dataset> cmd;
+        UpdateDatasetCommand cmd;
         try {
             cmd = new UpdateDatasetCommand(dataset, dvRequestService.getDataverseRequest());
-            ((UpdateDatasetCommand) cmd).setValidateLenient(true); 
+            cmd.setValidateLenient(true); 
             dataset = commandEngine.submit(cmd);
         } catch (CommandException ex) {
             FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN, "Dataset Registration Failed", " - " + ex.toString()));
@@ -2107,7 +2108,7 @@ public class DatasetPage implements java.io.Serializable {
     }
     
         
-    public String restrictSelectedFiles(boolean restricted){
+    public String restrictSelectedFiles(boolean restricted) throws CommandException{
         
         RequestContext requestContext = RequestContext.getCurrentInstance();
         if (selectedFiles.isEmpty()) {
@@ -2147,8 +2148,8 @@ public class DatasetPage implements java.io.Serializable {
         return  returnToDraftVersion();
     }
 
-    public void restrictFiles(boolean restricted) {
-
+    public void restrictFiles(boolean restricted) throws CommandException {
+   
         //if (previouslyRestrictedFiles == null) {
         // we don't need to buther with this "previously restricted" business 
         // when in Create mode... because all the files are new, so none could 
@@ -2165,7 +2166,8 @@ public class DatasetPage implements java.io.Serializable {
                     previouslyRestrictedFiles.add(fmd);
                 }
             }
-
+            
+            Command cmd;
             String fileNames = null;
             for (FileMetadata fmw : workingVersion.getFileMetadatas()) {
                 for (FileMetadata fmd : this.getSelectedFiles()) {
@@ -2182,13 +2184,17 @@ public class DatasetPage implements java.io.Serializable {
                         }
                     }
                     if (fmd.getDataFile().equals(fmw.getDataFile())) {
-                        fmw.setRestricted(restricted);
-                        if (workingVersion.isDraft() && !fmw.getDataFile().isReleased()) {
-                            // We do not really need to check that the working version is 
-                            // a draft here - it must be a draft, if we've gotten this
-                            // far. But just in case. -- L.A. 4.2.1
-                            fmw.getDataFile().setRestricted(restricted);
-                        }
+                        cmd = new RestrictFileCommand(fmw.getDataFile(), dvRequestService.getDataverseRequest(), restricted);
+                        commandEngine.submit(cmd);
+                        
+                        
+//                        fmw.setRestricted(restricted);
+//                        if (workingVersion.isDraft() && !fmw.getDataFile().isReleased()) {
+//                            // We do not really need to check that the working version is 
+//                            // a draft here - it must be a draft, if we've gotten this
+//                            // far. But just in case. -- L.A. 4.2.1
+//                            fmw.getDataFile().setRestricted(restricted);
+//                        }
                     }
                 }
             }

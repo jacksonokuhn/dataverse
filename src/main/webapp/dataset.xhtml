@@ -155,22 +155,29 @@
                                             </p:commandLink>
                                         </li>
                                         <ui:fragment rendered="#{permissionsWrapper.canManagePermissions(DatasetPage.dataset)}">
-                                            <li class="dropdown-submenu pull-left">
-                                                <a tabindex="-1" href="#">#{bundle['dataset.editBtn.itemLabel.permissions']}</a>
-                                                <ul class="dropdown-menu">
-                                                    <li>
-                                                        <h:link id="managePermissions" styleClass="ui-commandlink ui-widget" outcome="permissions-manage">
-                                                            <h:outputText value="Dataset" />
-                                                            <f:param name="id" value="#{DatasetPage.dataset.id}" />
-                                                        </h:link>
-                                                    </li>
-                                                    <li>
-                                                        <h:link id="manageFilePermissions" styleClass="ui-commandlink ui-widget" outcome="permissions-manage-files">
-                                                            <h:outputText value="File" />
-                                                            <f:param name="id" value="#{DatasetPage.dataset.id}" />
-                                                        </h:link>
-                                                    </li>
-                                                </ul>
+                                            <li class="#{settingsWrapper.publicInstall ? '' : 'dropdown-submenu pull-left'}">
+                                                <ui:fragment rendered="#{!settingsWrapper.publicInstall}">
+                                                    <a tabindex="-1" href="#">#{bundle['dataset.editBtn.itemLabel.permissions']}</a>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <h:link id="manageDatasetPermissions" styleClass="ui-commandlink ui-widget" outcome="permissions-manage">
+                                                                <h:outputText value="Dataset" />
+                                                                <f:param name="id" value="#{DatasetPage.dataset.id}" />
+                                                            </h:link>
+                                                        </li>
+                                                        <li>
+                                                            <h:link id="manageFilePermissions" styleClass="ui-commandlink ui-widget" outcome="permissions-manage-files">
+                                                                <h:outputText value="File" />
+                                                                <f:param name="id" value="#{DatasetPage.dataset.id}" />
+                                                            </h:link>
+                                                        </li>
+                                                    </ul>
+                                                </ui:fragment>                                            
+                                                <h:link id="managePermissions" rendered="#{settingsWrapper.publicInstall}"
+                                                        styleClass="ui-commandlink ui-widget" outcome="permissions-manage">
+                                                    <h:outputText value="#{bundle['dataset.editBtn.itemLabel.permissions']}" />
+                                                    <f:param name="id" value="#{DatasetPage.dataset.id}" />
+                                                </h:link>
                                             </li>
                                             <li>
                                                 <p:commandLink id="privateUrl" oncomplete="PF('privateUrlConfirmation').show()" action="#{DatasetPage.initPrivateUrlPopUp()}" update="privateUrlPanel">
@@ -1327,15 +1334,40 @@
                         <p class="text-danger">
                             <span class="glyphicon glyphicon-warning-sign"/> #{bundle['dataset.rejectMessage']}
                         </p>
+                        <ui:remove>
+                        <!--FIXME update for new comments table -->
+                        <p:inputTextarea id="returnReason" rows="3"  value="#{DatasetPage.workingVersion.returnReason}" maxlength="200" widgetVar="returnReason"
+                                         cols="70" counter="display"  counterTemplate="{0} characters remaining." autoResize="false"/>
+                        <p>
+                        <h:outputText id="display" />
+                        </p>
+                        <p:watermark for="returnReason" value="#{bundle['dataset.rejectWatermark']}" id="returnReasonwatermark" />
+                        </ui:remove>
+
                         <div class="button-block">
                             <p:commandButton value="#{bundle.continue}" onclick="PF('sendBackToContributor').hide()" action="#{DatasetPage.sendBackToContributor}" />
+                            <ui:remove>
+                            <p:commandButton value="#{bundle.continue}" onclick="testReturnReason();"  />
+                            </ui:remove>
                             <p:commandButton value="#{bundle.cancel}" onclick="PF('sendBackToContributor').hide();PF('blockDatasetForm').hide();" type="button" />
                         </div>
                     </p:dialog>
-                    <!-- END: Publish/Submit for Review Dialogs -->
+                    <p:remoteCommand name="returnToAuthorCommand"   action="#{DatasetPage.sendBackToContributor}"/>
+                    <p:confirmDialog id="enterReturnReason" message="#{bundle['dataset.reject.enterReason']}" header="#{bundle['dataset.reject.enterReason.header']}" widgetVar="enterReturnReason"> </p:confirmDialog>                   
+                    
+                     <!-- END: Publish/Submit for Review Dialogs -->
                 </h:form>
                 <script type="text/javascript" src="/resources/js/dropins.js" id="dropboxjs" data-app-key="#{DatasetPage.dropBoxKey}"/>
                 <script type="text/javascript">
+                    function testReturnReason(){
+                        var returnReasonText = PF('returnReason').jq.val();
+                        if (returnReasonText.length===0){
+                            PF('enterReturnReason').show();
+                        } else {
+                            PF('sendBackToContributor').hide();
+                            returnToAuthorCommand();
+                        }                           
+                    }
                     function openDialog() {
                         PF('details').show();
                     }
