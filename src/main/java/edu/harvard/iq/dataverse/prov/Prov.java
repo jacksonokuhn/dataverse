@@ -3,12 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.harvard.iq.dataverse;
+package edu.harvard.iq.dataverse.prov;
 
+import edu.harvard.iq.dataverse.prov.ProvCommand;
 import java.util.Arrays;
 import java.util.List;
-
-/Users/eli/NetBeansProjects/Dataverse/src/main/java/edu/harvard/iq/dataverse/Prov.java
 
 //December is release of provenance
 

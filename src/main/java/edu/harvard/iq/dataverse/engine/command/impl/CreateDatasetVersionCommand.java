@@ -61,15 +61,6 @@ public class CreateDatasetVersionCommand extends AbstractCommand<DatasetVersion>
             }
         }
         newVersion.setDataset(dataset);
-
-        //Prov???
-        msg("TESTTEST");
-        msg("CDVCversion: "+dataset.getLatestVersion()); 
-        int dFnum = 1;
-        for (DataFile dataFile: dataset.getFiles() ){
-            msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
-            dFnum++;
-        } 
        
         newVersion.setDatasetFields(newVersion.initDatasetFields());
      
@@ -112,6 +103,8 @@ public class CreateDatasetVersionCommand extends AbstractCommand<DatasetVersion>
         dsvs.addAll(currentVersions);
         dsvs.add(0, newVersion);
         dataset.setVersions( dsvs );
+        
+        // Prov 
         
         // TODO make async
         // ctxt.index().indexDataset(dataset);

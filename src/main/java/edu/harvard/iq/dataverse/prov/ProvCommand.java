@@ -3,12 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.harvard.iq.dataverse.engine.command.impl;
+package edu.harvard.iq.dataverse.prov;
 
 /**
  *
  * @author eli
  */
-public class ProvCommand {
-    
+public abstract class ProvCommand {
+    //Prov things go here
 }

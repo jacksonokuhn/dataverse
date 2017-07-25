@@ -5,6 +5,7 @@
  */
 package edu.harvard.iq.dataverse.engine.command.impl;
 
+import edu.harvard.iq.dataverse.prov.PublishDatasetProvCommand;
 import edu.harvard.iq.dataverse.*;
 import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
@@ -47,10 +48,6 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
     private static final Logger logger = Logger.getLogger(PublishDatasetCommand.class.getCanonicalName());
     private static final int FOOLPROOF_RETRIAL_ATTEMPTS_LIMIT = 2 ^ 8;
 
-    //////        
-    Prov publishProv = new Prov();
-    //////
-    
     boolean minorRelease = false;
     Dataset theDataset;
 
@@ -324,84 +321,10 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
          * @todo what should we do with the indexRespose?
          */
         IndexResponse indexResponse = ctxt.solrIndex().indexPermissionsForOneDvObject(savedDataset);
-
-        //////////////////////////////////////////////////
-
-        
-        publishProv.setAgent(getUser().getIdentifier());
-        publishProv.setOriginator(ctxt.systemConfig().getDataverseSiteUrl());
-        publishProv.setVersionNumber(theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber());
-        publishProv.setDatasetTransformation("FromUI");
-        publishProv.setDatasetName(theDataset.getIdentifier() + publishProv.getVersionNumber());
-        //prefix with UUID's
-        publishProv.setParentName("FromUI");
-        
-        int dFnum = 1;
-        for (DataFile dataFile : theDataset.getFiles()) {
-            for (FileMetadata datafile : dataFile.getFileMetadatas()) {
-                publishProv.addToAddedFiles(dataFile.getFileMetadatas().get(dFnum).getLabel());
-            }
-        }
-        
    
+        // Prov hook
+        CPLObject datasetProv = PublishDatasetProvCommand.execute(savedDataset);
         
-        PublishDatasetProvCommand.execute(theDataset);
-        
-        /**
-         *****
-         *****
-         */
-        /*
-        String originator = ctxt.systemConfig().getDataverseSiteUrl();
-
-        String versionNumber = theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber();
-        String versionTransformation = "fromUI / tracked change";
-        String datasetTransformation = "fromUI";
-        String name = theDataset.getIdentifier() + versionNumber;
-        String agent = getUser().getIdentifier();
-        String parentName = "fromUI";
-        // make dataset object for parentName
-      
-
-        /*
-        things needed from UI:
-        parent dataset : null, parent
-        transformation : automatic/manual
-        
-         
-        PublishDatasetProvCommand.msg("CPLObject.lookup(" + "originator: " + originator + ", name: " + name + ", type: entity");
-        PublishDatasetProvCommand.msg("agent: " + agent);
-
-        // if no datasetTransformation or parentDatset is given by the user then it is a new dataset or a new version of a dataset
-        if (isNewDataset == true) {
-            PublishDatasetProvCommand.createProv(originator, name, agent, versionTransformation, versionNumber, theDataset);
-
-        } else {
-            PublishDatasetProvCommand.createProv(originator, name, agent, parentName, datasetTransformation, versionNumber, theDataset);
-        }
-
-        PublishDatasetProvCommand.msg("version: " + theDataset.getLatestVersion());
-        PublishDatasetProvCommand.msg("versionMajor: " + theDataset.getVersionNumber());
-        PublishDatasetProvCommand.msg("versionMinor: " + theDataset.getMinorVersionNumber());
-
-        int dFnum = 1;
-        for (DataFile dataFile : theDataset.getFiles()) {
-
-            for (FileMetadata datafile : dataFile.getFileMetadatas()) {
-                msg("test");
-                msg(dataFile.getFileMetadatas().get(dFnum).getLabel());
-
-            }
-
-            PublishDatasetProvCommand.msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
-
-            dFnum++;
-        }
-        */
-        /**
-         * ****
-         *****
-         */
         
         return savedDataset;
     }    

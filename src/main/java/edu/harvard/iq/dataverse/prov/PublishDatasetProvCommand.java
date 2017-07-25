@@ -3,127 +3,59 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.harvard.iq.dataverse;
+package edu.harvard.iq.dataverse.prov;
 
+import edu.harvard.iq.dataverse.DataFile;
+import edu.harvard.iq.dataverse.DataFileServiceBean;
+import edu.harvard.iq.dataverse.Dataset;
+import edu.harvard.iq.dataverse.DatasetVersion;
+import edu.harvard.iq.dataverse.FileMetadata;
 import edu.harvard.iq.dataverse.engine.command.CommandContext;
-
-////////////////////////////
-
+import edu.harvard.pass.cpl.*;
 
 /**
  *
  * @author eli
  */
 
-
-
-
-//class for addition of prov on 
-public class PublishDatasetProvCommand {
-
-    public static void msg(String str) {
-            System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-            System.out.println(str);
-            System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    }
-    
-    
-    public void execute (Dataset theDataset) {
-        
-        Prov getProv = new Prov();
-        
-        String originator = getProv.getOriginator();
-        String versionNumber = theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber();
-        String versionTransformation = "fromUI / tracked change";
-        //TODO get tracked change data from DV
-        String datasetTransformation = "fromUI";    
-        String name = theDataset.getIdentifier() + versionNumber;
-        String parentName = "fromUI";
-
-        ProvFactory pF = new ProvFactory(originator);
-        pF.setBundle(originator, name);
-
-        if (getProv.getIsNewDS() == true) {
-
-            //draw hadMember relationship to container
-            //draw hadMember relationships from DF to container
-
-            CPLObject container = new pF.createEntity(name);
-
-            for (DataFile datafile: theDataset.getFiles()){
-                CPLObject datafile = 
-
-            }
-
-        }
-        else if (getProv.getChangedDSMetadata() == true) {
-
-        }
-        else if (getProv.getChangedDFMetadata() == true) {
-
-        }
-
-    }
-}
-
-
-
-////////////////////////////
-
-//picture of what the graph should look like / CPL calls
-
-
-/**
- *
- * @author eli
- */
-/*
 //class for addition of prov on 
 public class PublishDatasetProvCommand extends ProvCommand {
     
      @EJB
      DataFileServiceBean datafileService;
-     
-    public static void msg(String str) {
-        System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-        System.out.println(str);
-        System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    }
     
 
     
     // will be changed with the addition of datafile versioning
-    private void AddDatafileProv(String originator, String byAgent, String dsName, Dataset theDataset){
+    private void AddDatafileProv(String originator, String byAgent, String dsName, Dataset dataset){
+        
+        ProvFactory provFactory = new ProvFactory(originator);
         int dFnum = 0;
+
         // iterates throught datafiles in dataset, if there is already an agent
-        // responsible than do nothing, else new attribution edge
-        // 
-        
-        // Float[] datasetVersionArray = [];
-        
-        Integer datafileMetadataSize = datafile.getFileMetadatas().size();
+        // responsible then do nothing, else new attribution edge
         List<FileMetadata> datafileMetadataList = datafile.getFileMetadatas();
-        for (Integer i = 0; i < datafileMetadataSize; i++){
-        
+        for (Integer i = 0; i < datafileMetadataList.size(); i++){
+            //logic here   
         }
      
         
-        //for changing file metadata just change the collection not dataset, and no need to iterate through
+        // for changing file metadata just change the collection not dataset, and no need to iterate through
         // the datafiles
         // Edge = AncestryEntry
         
-        for (DataFile datafile: theDataset.getFiles()){
+        for (DataFile datafile: dataset.getFiles()){
             
             DataFile currentDatafile = datafileService.find(datafile.getId());
             String storageId = currentDatafile.getStorageIdentifier();
             
-            CPLObject createdDatafile = pF.createEntity(storageId);
+            CPLObject createdDatafile = provFactory.createEntity(storageId);
             
             if(datafile.getPublicationDate() == null){
  
-                CPLEdge isMemberOf = pF.createIsMemberOf(dsName, storageId);
+                CPLEdge isMemberOf = provFactory.createIsMemberOf(dsName, storageId);
                 
-                CPLEdge wasAttrTo = pF.createWasAttributedTo(StorageId, byAgent);
+                CPLEdge wasAttrTo = provFactory.createWasAttributedTo(StorageId, byAgent);
                 
             }
             else if(CPLObject.lookup(originator, storageId, "activity") != null) { 
@@ -189,7 +121,7 @@ public class PublishDatasetProvCommand extends ProvCommand {
             dFnum++;
             
     }
-        /*
+     
         DATAFILE VERSIONING PSUEDOCODE
 
         on creation of new dataset iterate through datafiles
@@ -204,8 +136,8 @@ public class PublishDatasetProvCommand extends ProvCommand {
     
     
     //create an execute command here
-    
-    //
+    CPLObject execute
+    /*
     // creation of provenance for either a completely new dataset, or a new version of a dataset
     public static  void createProv(String originator, String name, String agent, String versionTransformation, String versionNumber, Dataset theDataset){
         
@@ -264,4 +196,76 @@ public class PublishDatasetProvCommand extends ProvCommand {
     }  
 
     
-}*/
+}
+
+
+
+        publishProv.setAgent(getUser().getIdentifier());
+        publishProv.setOriginator(ctxt.systemConfig().getDataverseSiteUrl());
+        publishProv.setVersionNumber(theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber());
+        publishProv.setDatasetTransformation("FromUI");
+        publishProv.setDatasetName(theDataset.getIdentifier() + publishProv.getVersionNumber());
+        //prefix with UUID's
+        publishProv.setParentName("FromUI");
+        
+        int dFnum = 1;
+        for (DataFile dataFile : theDataset.getFiles()) {
+            for (FileMetadata datafile : dataFile.getFileMetadatas()) {
+                publishProv.addToAddedFiles(dataFile.getFileMetadatas().get(dFnum).getLabel());
+            }
+        }
+               /**
+         *****
+         *****
+         */
+        /*
+        String originator = ctxt.systemConfig().getDataverseSiteUrl();
+
+        String versionNumber = theDataset.getVersionNumber() + "." + theDataset.getMinorVersionNumber();
+        String versionTransformation = "fromUI / tracked change";
+        String datasetTransformation = "fromUI";
+        String name = theDataset.getIdentifier() + versionNumber;
+        String agent = getUser().getIdentifier();
+        String parentName = "fromUI";
+        // make dataset object for parentName
+      
+
+        /*
+        things needed from UI:
+        parent dataset : null, parent
+        transformation : automatic/manual
+        
+         
+        PublishDatasetProvCommand.msg("CPLObject.lookup(" + "originator: " + originator + ", name: " + name + ", type: entity");
+        PublishDatasetProvCommand.msg("agent: " + agent);
+
+        // if no datasetTransformation or parentDatset is given by the user then it is a new dataset or a new version of a dataset
+        if (isNewDataset == true) {
+            PublishDatasetProvCommand.createProv(originator, name, agent, versionTransformation, versionNumber, theDataset);
+
+        } else {
+            PublishDatasetProvCommand.createProv(originator, name, agent, parentName, datasetTransformation, versionNumber, theDataset);
+        }
+
+        PublishDatasetProvCommand.msg("version: " + theDataset.getLatestVersion());
+        PublishDatasetProvCommand.msg("versionMajor: " + theDataset.getVersionNumber());
+        PublishDatasetProvCommand.msg("versionMinor: " + theDataset.getMinorVersionNumber());
+
+        int dFnum = 1;
+        for (DataFile dataFile : theDataset.getFiles()) {
+
+            for (FileMetadata datafile : dataFile.getFileMetadatas()) {
+                msg("test");
+                msg(dataFile.getFileMetadatas().get(dFnum).getLabel());
+
+            }
+
+            PublishDatasetProvCommand.msg("DF" + dFnum + "storage identifier: " + dataFile.getStorageIdentifier());
+
+            dFnum++;
+        }
+        */
+        /**
+         * ****
+         *****
+         */

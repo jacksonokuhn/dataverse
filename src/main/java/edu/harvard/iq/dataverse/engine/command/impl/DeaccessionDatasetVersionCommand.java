@@ -6,13 +6,12 @@
 
 package edu.harvard.iq.dataverse.engine.command.impl;
 
+import edu.harvard.iq.dataverse.prov.DeaccessionDatasetVersionProvCommand;
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetVersion;
-import edu.harvard.iq.dataverse.Prov;
 import edu.harvard.iq.dataverse.IdServiceBean;
 import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.engine.command.AbstractCommand;
-
 import edu.harvard.iq.dataverse.engine.command.CommandContext;
 import edu.harvard.iq.dataverse.engine.command.DataverseRequest;
 import edu.harvard.iq.dataverse.engine.command.RequiredPermissions;
@@ -49,8 +48,6 @@ public class DeaccessionDatasetVersionCommand extends AbstractCommand<DatasetVer
     @Override
     public DatasetVersion execute(CommandContext ctxt) throws CommandException {
         Dataset ds = theVersion.getDataset();        
-
-        Prov deaccessProv = new Prov();
         
         theVersion.setVersionState(DatasetVersion.VersionState.DEACCESSIONED);
         /* We do not want to delete the identifier if the dataset is completely deaccessioned
@@ -96,14 +93,10 @@ public class DeaccessionDatasetVersionCommand extends AbstractCommand<DatasetVer
         // And save the dataset, to get the "last exported" timestamp right:
 
         Dataset managedDs = ctxt.em().merge(managed.getDataset());
-
-        // Prov
-        deaccessProv.setAgent(getUser().getIdentifier());
-        deaccessProv.setOriginator(ctxt.systemConfig().getDataverseSiteUrl());
-        deaccessProv.setVersionNumber(ds.getVersionNumber() + "." + ds.getMinorVersionNumber());
-        deaccessProv.setDatasetTransformation("FromUI");
-        deaccessProv.setDatasetName(ds.getIdentifier() + ds.getVersionNumber());
-        deaccessProv.setParentName("FromUI");
+        
+        // Prov hook
+        CPLObject datasetProv = DeaccessionDatasetVersionProvCommand.execute(theDataset);
+        
         
         return managed;
     }

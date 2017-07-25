@@ -1,7 +1,7 @@
 package edu.harvard.iq.dataverse.engine.command.impl;
 
-import edu.harvard.iq.dataverse.ProvCommand;
 import edu.harvard.iq.dataverse.*;
+import edu.harvard.iq.dataverse.prov.CreateDatasetProvCommand;
 import edu.harvard.iq.dataverse.DatasetVersion.VersionState;
 import edu.harvard.iq.dataverse.api.imports.ImportUtil;
 import edu.harvard.iq.dataverse.api.imports.ImportUtil.ImportType;
@@ -268,8 +268,9 @@ public class CreateDatasetCommand extends AbstractCommand<Dataset> {
             ctxt.em().merge(datasetVersionDataverseUser); 
         }
            logger.log(Level.FINE,"after create version user "  + formatter.format(new Date().getTime()));
-           
-   
+          
+        // Prov hook
+        CPLObject datasetProv = CreateDatasetProvCommand.execute(savedDataset);
         
         return savedDataset;
     }
@@ -291,19 +292,6 @@ public class CreateDatasetCommand extends AbstractCommand<Dataset> {
         }
         final CreateDatasetCommand other = (CreateDatasetCommand) obj;
         return Objects.equals(this.theDataset, other.theDataset);
-    }
-
-    @Override
-    public String toString() {
-        return "[DatasetCreate datasetTESTTESTTEST:" + theDataset.getId() + "]";
-    }
-
-    private void CreateDatasetProv(String originator, String name, String agent, String parentName, String transformation) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    private void CreateDatasetProv(String originator, String name, String agent) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }
 

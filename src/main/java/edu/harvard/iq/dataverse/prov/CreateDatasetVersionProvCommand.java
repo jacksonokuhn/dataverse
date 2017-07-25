@@ -3,12 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.harvard.iq.dataverse;
+package edu.harvard.iq.dataverse.prov;
 
 /**
  *
- * @author eli
+ * @author jacksonokuhn
  */
-public abstract class ProvCommand {
-    //Prov things go here
+public class CreateDatasetVersionProvCommand {
+    
 }
