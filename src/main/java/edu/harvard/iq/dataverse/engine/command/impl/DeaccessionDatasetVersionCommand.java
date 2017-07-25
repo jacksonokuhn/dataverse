@@ -6,7 +6,7 @@
 
 package edu.harvard.iq.dataverse.engine.command.impl;
 
-import edu.harvard.iq.dataverse.prov.DeaccessionDatasetVersionProvCommand;
+import edu.harvard.iq.dataverse.prov.DeaccessionDatasetVersionProv
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.IdServiceBean;
@@ -95,7 +95,7 @@ public class DeaccessionDatasetVersionCommand extends AbstractCommand<DatasetVer
         Dataset managedDs = ctxt.em().merge(managed.getDataset());
         
         // Prov hook
-        CPLObject datasetProv = DeaccessionDatasetVersionProvCommand.execute(theDataset);
+        CPLObject datasetProv = DeaccessionDatasetVersionProv.execute(theVersion);
         
         
         return managed;

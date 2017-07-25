@@ -9,6 +9,6 @@ package edu.harvard.iq.dataverse.prov;
  *
  * @author jacksonokuhn
  */
-public class DeleteDatasetProvCommand {
+public class ReplaceDataFileProv {
     
 }

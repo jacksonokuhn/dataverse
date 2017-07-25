@@ -7,8 +7,8 @@ package edu.harvard.iq.dataverse.prov;
 
 /**
  *
- * @author eli
+ * @author jacksonokuhn
  */
-public abstract class ProvCommand {
-    //Prov things go here
+public class DeleteDataFileProv {
+    
 }

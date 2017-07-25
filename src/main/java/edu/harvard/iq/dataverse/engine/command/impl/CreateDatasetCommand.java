@@ -206,8 +206,6 @@ public class CreateDatasetCommand extends AbstractCommand<Dataset> {
         if(template != null){
             ctxt.templates().incrementUsageCount(template.getId());
         }
-
-        //TODO: add Prov
         
         logger.fine("Checking if rsync support is enabled.");
         if (DataCaptureModuleUtil.rsyncSupportEnabled(ctxt.settings().getValueForKey(SettingsServiceBean.Key.UploadMethods))) {

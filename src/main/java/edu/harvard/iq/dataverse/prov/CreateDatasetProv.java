@@ -9,48 +9,32 @@ import edu.harvard.iq.dataverse.DataFile;
 import edu.harvard.iq.dataverse.DataFileServiceBean;
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetVersion;
-import edu.harvard.iq.dataverse.engine.command.AbstractCommand;
 import edu.harvard.iq.dataverse.FileMetadata;
 import edu.harvard.iq.dataverse.engine.command.CommandContext;
-import edu.harvard.iq.dataverse.engine.command.exception.CommandException;
 import edu.harvard.pass.cpl.*;
 /**
  *
  * @author jacksonokuhn
  */
-public class CreateDatasetProvCommand extends AbstractCommand<Dataset> {
+public class CreateDatasetProv extends Prov {
     
     Dataset theDataset;
     
-    public CreateDatasetProvCommand(Dataset datasetIn){
-        super(aRequest, theDataset.getOwner());
+    public CreateDatasetProv(Dataset datasetIn){
         this.theDataset = datasetIn;
     }
     
-    public CPLObject execute(CommandContext ctxt) throws CommandException {
+    public CPLObject execute(CommandContext ctxt) {
         
         // Connect to CPL
-        try{
-            if(!CPL.isAttached()){
-                CPL.attachODBC("DSN=CPL");
-            }
-        } catch (CPLException e){
-            if(e.getErrorCode() != CPLDirectConstants.CPL_E_ALREADY_INITIALIZED){
-                throw new CommandException("CPL backend failed to attach.", this);
-            }
-        }
+        tryAttachODBC("DSN=CPL");
         
         // Set up ProvFactory
-        String originator = ctxt.systemConfig().getDataverseSiteUrl();
-        String bundleName = ""; //TODO
-        
-        ProvFactory provFactory = 
-                new ProvFactory(originator);
-        
-        provFactory.setBundle(originator, bundleName);
+        String bundleName = ""; // TODO figure out
+        ProvFactor provFactory = createFactoryWithDataverseBundle(bundleName);
         
         // Create dataset object
-        String datasetName = theDataset.getIdentifier() + 
+        String datasetName = theDataset.getId() + 
                                 "." + theDataset.getVersionNumber() + 
                                 "." + theDataset.getMinorVersionNumber()
         CPLObject datasetProv = provFactory.createCollection(datasetName);
@@ -62,20 +46,18 @@ public class CreateDatasetProvCommand extends AbstractCommand<Dataset> {
         
         // Add datafiles
         for (DataFile file : theDataset.getFiles()){
-            CPLObject oldFileProv = CPLObject.lookup(originator, file.getStorageIdentifier(), CPLObject.ENTITY, null);
+            CPLObject oldFileProv = CPLObject.lookup(originator, file.getId(), CPLObject.ENTITY, null);
             if(oldFileProv != null){
-                // TODO figure what to do here
-                // probably check if updated then 
+                provFactory.createHadMember(datasetProv, oldFileProv);
             } else{
-                CPLObject fileProv = provFactory.createEntity(file.getStorageIdentifier());
+                CPLObject fileProv = provFactory.createEntity(file.getId());
                 provFactory.createHadMember(datasetProv, fileProv);
                 provFactory.createWasAttributedTo(fileProv, creatorProv);
             }
             // TODO maybe do something with FileMetadata?
-            // TODO do files get new storage ids when they're reversioned?
         }
         
-        //Connect to previous version
+        // Connect to previous version if exists
         if(theDataset.getVersionNumber() > 1 || theDataset.getMinorVersionNumber() > 0){
             DatasetVersion prevVersion = theDataset.getVersions().get(1);
             CPLObject prevVersionProv = CPLObject.lookup(originator, 

@@ -103,8 +103,7 @@ public class CreateDatasetVersionCommand extends AbstractCommand<DatasetVersion>
         dsvs.addAll(currentVersions);
         dsvs.add(0, newVersion);
         dataset.setVersions( dsvs );
-        
-        // Prov 
+       
         
         // TODO make async
         // ctxt.index().indexDataset(dataset);
