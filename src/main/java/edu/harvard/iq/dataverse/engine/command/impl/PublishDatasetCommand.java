@@ -5,7 +5,8 @@
  */
 package edu.harvard.iq.dataverse.engine.command.impl;
 
-import edu.harvard.iq.dataverse.prov.PublishDatasetProv;
+import edu.harvard.iq.dataverse.prov.ProvHelper;
+import edu.harvard.pass.cpl.*;
 import edu.harvard.iq.dataverse.*;
 import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
@@ -323,7 +324,8 @@ public class PublishDatasetCommand extends AbstractCommand<Dataset> {
         IndexResponse indexResponse = ctxt.solrIndex().indexPermissionsForOneDvObject(savedDataset);
    
         // Prov hook
-        CPLObject datasetProv = PublishDatasetProv.execute(savedDataset);
+        ProvHelper p = new ProvHelper();
+        CPLObject datasetProv = p.publishDatasetProv(savedDataset.getLatestVersion(), getUser());
         
         
         return savedDataset;

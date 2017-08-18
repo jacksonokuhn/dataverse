@@ -6,7 +6,7 @@
 
 package edu.harvard.iq.dataverse.engine.command.impl;
 
-import edu.harvard.iq.dataverse.prov.DeaccessionDatasetVersionProv
+import edu.harvard.iq.dataverse.prov.ProvHelper;
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.IdServiceBean;
@@ -21,6 +21,7 @@ import edu.harvard.iq.dataverse.export.ExportException;
 import edu.harvard.iq.dataverse.export.ExportService;
 import edu.harvard.iq.dataverse.settings.SettingsServiceBean;
 import edu.harvard.iq.dataverse.util.BundleUtil;
+import edu.harvard.pass.cpl.*;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
@@ -95,7 +96,8 @@ public class DeaccessionDatasetVersionCommand extends AbstractCommand<DatasetVer
         Dataset managedDs = ctxt.em().merge(managed.getDataset());
         
         // Prov hook
-        CPLObject datasetProv = DeaccessionDatasetVersionProv.execute(theVersion);
+        ProvHelper p = new ProvHelper();
+        CPLObject datasetProv = p.deaccessionDatasetVersionProv(theVersion, getUser());
         
         
         return managed;
