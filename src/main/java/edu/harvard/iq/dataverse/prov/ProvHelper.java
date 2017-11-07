@@ -15,6 +15,8 @@ import edu.harvard.iq.dataverse.util.SystemConfig;
 import edu.harvard.pass.cpl.*;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import javax.ejb.EJB;
 
 /**
@@ -26,12 +28,13 @@ public class ProvHelper {
     @EJB
     SystemConfig systemConfig;
     
-    String originator;
+    static String prefix = "dv";
+    String namespace;
     
     static String ODBCString = "DSN=CPL"; // TODO Will need updating with Dataverse db info
         
     public ProvHelper(){
-        this.originator = systemConfig.getDataverseSiteUrl(); 
+        this.namespace = systemConfig.getDataverseSiteUrl(); 
     }
     
     //TODO consider initializing and attaching on dv startup instead
@@ -53,11 +56,11 @@ public class ProvHelper {
     private ProvFactory createFactoryWithDataverseBundle(String bundleName){      
               
         ProvFactory provFactory = 
-                new ProvFactory(this.originator);
+                new ProvFactory(namespace);
         
-        CPLObject bundle = CPLObject.create(this.originator, bundleName, CPLObject.ENTITY, null);
+        CPLBundle bundle = CPLBundle.create(bundleName);
         
-        bundle.addProperty("dv", this.originator);
+        bundle.addPrefix(prefix, namespace);
         
         provFactory.setBundle(bundle);
         
@@ -71,24 +74,24 @@ public class ProvHelper {
         
         // Set up ProvFactory
         Dataset theDataset = theVersion.getDataset();
-        String datasetVersionName = "dv:" + theDataset.getIdentifier() + 
+        String datasetVersionName = theDataset.getIdentifier() + 
                                 "-" + theVersion.getFriendlyVersionNumber();
         String bundleName = datasetVersionName + "-publish";
-        ProvFactory provFactory = createFactoryWithDataverseBundle(bundleName);
+        ProvFactory provFactory = createFactoryWithDataverseBundle(gbundleName);
         CPLObject datasetProv = provFactory.createCollection(datasetVersionName);
         
         // Create dataset object
-        datasetProv.addProperty("prov:generatedAtTime", theVersion.getReleaseTime().toString());
+        datasetProv.addProperty("prov", "generatedAtTime", theVersion.getReleaseTime().toString());
 
         // Connect to previous version if exists
         if(theVersion.getVersionNumber() > 1 || theVersion.getMinorVersionNumber() > 0){
             DatasetVersion prevVersion = theDataset.getVersions().get(theDataset.getVersions().indexOf(theVersion) + 1);
-            CPLObject prevVersionProv = CPLObject.tryLookup(originator, 
+            CPLObject prevVersionProv = CPLObject.tryLookup(prefix, 
                                             theDataset.getIdentifier() + "-" + prevVersion.getFriendlyVersionNumber(),
                                             CPLObject.ENTITY, null);
             if(prevVersionProv == null){
                 this.publishDatasetProv(prevVersion, null);
-                prevVersionProv = CPLObject.lookup(originator, 
+                prevVersionProv = CPLObject.lookup(prefix, 
                                             theDataset.getIdentifier() + "-" + prevVersion.getFriendlyVersionNumber(),
                                             CPLObject.ENTITY, null);
             }
@@ -102,7 +105,7 @@ public class ProvHelper {
         
         // Find or create contributors and add relations
         for(String identifier: theVersion.getVersionContributorIdentifiers()){
-            CPLObject contributorProv = CPLObject.tryLookup(originator, "dv:" + identifier, CPLObject.AGENT, null);
+            CPLObject contributorProv = CPLObject.tryLookup(prefix, identifier, CPLObject.AGENT, null);
             if(contributorProv == null){
                 contributorProv = provFactory.createAgent(identifier);
             }
@@ -111,9 +114,9 @@ public class ProvHelper {
         
         // Find or create publisher and add relations
         if(user instanceof AuthenticatedUser){
-            CPLObject userProv = CPLObject.tryLookup(originator, "dv:" + user.getIdentifier(), CPLObject.AGENT, null);
+            CPLObject userProv = CPLObject.tryLookup(prefix, user.getIdentifier(), CPLObject.AGENT, null);
             if(userProv == null){
-                userProv = provFactory.createAgent("dv:" + user.getIdentifier());
+                userProv = provFactory.createAgent(user.getIdentifier());
             }
             provFactory.createWasAssociatedWith(datasetProv, userProv);
         }
@@ -121,20 +124,20 @@ public class ProvHelper {
 
         // Add datafiles
         for (FileMetadata metadata : theVersion.getFileMetadatas()){            
-            CPLObject fileProv = CPLObject.lookup(originator, "dv:" + metadata.getDataFile().getId(), CPLObject.ENTITY, null);
+            CPLObject fileProv = CPLObject.lookup(prefix, metadata.getDataFile().getId(), CPLObject.ENTITY, null);
             if(fileProv == null){
-                fileProv = provFactory.createEntity("dv:" + metadata.getDataFile().getId());
+                fileProv = provFactory.createEntity(metadata.getDataFile().getId());
             }
-            CPLObject metaProv = provFactory.createEntity("dv:" + metadata.getDataFile().getId()+ "-" + theVersion.getFriendlyVersionNumber() + "-md");
+            CPLObject metaProv = provFactory.createEntity(metadata.getDataFile().getId()+ "-" + theVersion.getFriendlyVersionNumber() + "-md");
             
             provFactory.createHadMember(datasetProv, fileProv);
             provFactory.createHadMember(datasetProv, metaProv);
             provFactory.createWasInfluencedBy(fileProv, metaProv);
 
             if(metadata.getDataFile().getPreviousDataFileId() != null){
-                CPLObject prevFileProv = CPLObject.tryLookup(originator, "dv:" + metadata.getDataFile().getPreviousDataFileId(), CPLObject.ENTITY, null);
+                CPLObject prevFileProv = CPLObject.tryLookup(prefix, metadata.getDataFile().getPreviousDataFileId(), CPLObject.ENTITY, null);
                 if(prevFileProv == null){
-                    prevFileProv = provFactory.createEntity("dv:" + metadata.getDataFile().getPreviousDataFileId());
+                    prevFileProv = provFactory.createEntity(metadata.getDataFile().getPreviousDataFileId());
                 }
                 provFactory.createWasDerivedFrom(fileProv, prevFileProv);
             }
@@ -150,24 +153,24 @@ public class ProvHelper {
         // Connect to CPL
         tryAttachODBC();
         
-        String versionName = "dv:" + theVersion.getDataset().getIdentifier() + "-" + theVersion.getFriendlyVersionNumber();
+        String versionName = theVersion.getDataset().getIdentifier() + "-" + theVersion.getFriendlyVersionNumber();
         String bundleName = versionName + "-deaccession";
         
         ProvFactory provFactory = createFactoryWithDataverseBundle(bundleName);
                 
-        CPLObject datasetProv = CPLObject.tryLookup(originator, versionName, CPLObject.ENTITY, null);
+        CPLObject datasetProv = CPLObject.tryLookup(prefix, versionName, CPLObject.ENTITY, null);
         
         if(datasetProv == null){
             datasetProv = publishDatasetProv(theVersion, null);
         }
         
-        datasetProv.addProperty("prov:invalidatedAtTime", now.toString());
+        datasetProv.addProperty("prov", "invalidatedAtTime", now.toString());
         CPLObject deaccessionProv = provFactory.createActivity(versionName + "-deaccession");
         provFactory.createWasInvalidatedBy(datasetProv, deaccessionProv);
         if(user instanceof AuthenticatedUser){
-            CPLObject userProv = CPLObject.tryLookup(originator, "dv:" + user.getIdentifier(), CPLObject.AGENT, null);
+            CPLObject userProv = CPLObject.tryLookup(prefix, user.getIdentifier(), CPLObject.AGENT, null);
             if(userProv == null){
-                userProv = provFactory.createAgent("dv:" + user.getIdentifier());
+                userProv = provFactory.createAgent(user.getIdentifier());
             }
             provFactory.createWasAssociatedWith(datasetProv, userProv);
         }            
@@ -189,24 +192,24 @@ public class ProvHelper {
             return null;
         }
         
-        String versionName = "dv:" + theVersion.getDataset().getIdentifier() + "-" + theVersion.getFriendlyVersionNumber();
+        String versionName = theVersion.getDataset().getIdentifier() + "-" + theVersion.getFriendlyVersionNumber();
         String bundleName = versionName + "-delete";
         
         ProvFactory provFactory = createFactoryWithDataverseBundle(bundleName);
                 
-        CPLObject datasetProv = CPLObject.tryLookup(originator, versionName, CPLObject.ENTITY, null);
+        CPLObject datasetProv = CPLObject.tryLookup(prefix, versionName, CPLObject.ENTITY, null);
         
         if(datasetProv == null){
             datasetProv = publishDatasetProv(theVersion, null);
         }
         
-        datasetProv.addProperty("prov:invalidatedAtTime", now.toString());
+        datasetProv.addProperty("prov", "invalidatedAtTime", now.toString());
         CPLObject deaccessionProv = provFactory.createActivity(versionName + "-delete");
         provFactory.createWasInvalidatedBy(datasetProv, deaccessionProv);
         if(user instanceof AuthenticatedUser){
-            CPLObject userProv = CPLObject.tryLookup(originator, "dv:" + user.getIdentifier(), CPLObject.AGENT, null);
+            CPLObject userProv = CPLObject.tryLookup(prefix, user.getIdentifier(), CPLObject.AGENT, null);
             if(userProv == null){
-                userProv = provFactory.createAgent("dv:" + user.getIdentifier());
+                userProv = provFactory.createAgent(user.getIdentifier());
             }
             provFactory.createWasAssociatedWith(datasetProv, userProv);        
         }
@@ -214,37 +217,53 @@ public class ProvHelper {
         return datasetProv;
     }
     
-    public CPLObject importFileProvJSON(String filepath, String bundleName, DataFile anchorFile, AuthenticatedUser user){
+    public CPLObject importDataFileProvJSON(String json, String bundleName, DataFile anchorFile, String anchorFileName){
             
         tryAttachODBC();
         
-        CPLObject anchorProv = CPLObject.tryLookup(originator, "dv:" + anchorFile.getId(), CPLObject.ENTITY, null);
-        CPLObject userProv = CPLObject.tryLookup(originator, "dv:" + user.getIdentifier(), CPLObject.AGENT, null);
+        CPLObject anchorProv = CPLObject.tryLookup(prefix, anchorFile.getId(), CPLObject.ENTITY, null);
         
-        return CPLJsonUtility.importJson(filepath, originator, bundleName, anchorProv, userProv);
+        Map <CPLObject, String> hm = new HashMap<CPLObject, String>();
+        hm.put(anchorProv, anchorFileName)
+
+        return CPLJsonUtility.importJson(json, bundleName, hm);
     }
     
-    public void exportProvBundleJSON(CPLObject bundle, String filepath){
-        CPLJsonUtility.exportBundleJson(bundle, filepath);
+    public CPLObject importDatasetVersionProvJSON(String json, String bundleName, DatasetVersion anchorDataset, String anchorDatasetName){
+            
+        tryAttachODBC();
+        
+        String versionName = anchorDataset.getDataset().getIdentifier() + "-" + anchorDataset.getFriendlyVersionNumber();
+        CPLObject anchorProv = CPLObject.tryLookup(prefix, versionName, CPLObject.ENTITY, null);
+
+        Map <CPLObject, String> hm = new HashMap<CPLObject, String>();
+        hm.put(anchorProv, anchorDatasetName)
+
+        return CPLJsonUtility.importJson(filepath, bundleName, hm);
+    }
+    
+    public String exportProvBundleJSON(CPLBundle bundle){
+        CPLBundle[] bundleArray= {bundle};
+        return CPLJsonUtility.exportBundleJson(bundleArray);
     }
     
     public CPLRelation createDatasetDependencyProv(DatasetVersion userVersion, DatasetVersion usedVersion){
         
         tryAttachODBC();
 
-        String userVersionName = "dv:" + userVersion.getDataset().getIdentifier() + "-" + userVersion.getFriendlyVersionNumber();
-        String usedVersionName = "dv:" + usedVersion.getDataset().getIdentifier() + "-" + usedVersion.getFriendlyVersionNumber();
-        String bundleName = "dv:" +  userVersion.getDataset().getIdentifier() + "-" + userVersion.getFriendlyVersionNumber() + "->" +
+        String userVersionName = userVersion.getDataset().getIdentifier() + "-" + userVersion.getFriendlyVersionNumber();
+        String usedVersionName = usedVersion.getDataset().getIdentifier() + "-" + usedVersion.getFriendlyVersionNumber();
+        String bundleName = userVersion.getDataset().getIdentifier() + "-" + userVersion.getFriendlyVersionNumber() + "->" +
                         usedVersion.getDataset().getIdentifier() + "-" + usedVersion.getFriendlyVersionNumber();        
         
-        CPLObject bundleProv = CPLObject.create(originator, bundleName, CPLObject.BUNDLE, null);
+        CPLBundle bundleProv = CPLBundle.create(bundleName);
         
-        CPLObject userVersionProv = CPLObject.tryLookup(originator, userVersionName, CPLObject.ENTITY, null);
+        CPLObject userVersionProv = CPLObject.tryLookup(prefix, userVersionName, CPLObject.ENTITY, null);
         if(userVersionProv == null){
             userVersionProv = publishDatasetProv(userVersion, null);
         }
         
-        CPLObject usedVersionProv = CPLObject.tryLookup(originator, usedVersionName, CPLObject.ENTITY, null);
+        CPLObject usedVersionProv = CPLObject.tryLookup(prefix, usedVersionName, CPLObject.ENTITY, null);
         if(usedVersionProv == null){
             usedVersionProv = publishDatasetProv(usedVersion, null);
         }
